@@ -633,6 +633,8 @@
   </main>
 
   <script>
+    // Внимание: если этот сервер недоступен, P2P соединение не установится.
+    // Но номер комнаты теперь будет отображаться в любом случае.
     const signalingUrl = "wss://free.ryandns.com:3000/";
     const stunServers = [{ urls: "stun:stun.l.google.com:19302" }];
     const chunkSize = 16384; 
@@ -665,6 +667,9 @@
     let dataChannel = null;
     let room = Math.random().toString(36).substring(2, 6).toUpperCase();
     let localStream = null;
+
+    // ПРАВКА 1: Показываем комнату сразу, не дожидаясь ответа сервера
+    myRoomInput.value = room;
 
     let receivedFileBuffers = [];
     let receivedFileSize = 0;
@@ -722,7 +727,7 @@
       socket.onopen = () => {
         if (!targetRoom) {
           socket.send(JSON.stringify({ type: "join", room }));
-          myRoomInput.value = room;
+          // Старая строка myRoomInput.value = room; убрана отсюда
         } else {
           socket.send(JSON.stringify({ type: "join", room: targetRoom }));
         }
@@ -974,6 +979,7 @@
       }
 
       if (socket) {
+        // ПРАВКА 2: Отвязываем старое событие, чтобы не было ложного сообщения об отключении
         socket.onclose = null; 
         socket.close();
       }
