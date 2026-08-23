@@ -308,6 +308,14 @@
       border: 1px solid var(--border);
     }
 
+    .button-danger {
+      padding: 12px 17px;
+      border-radius: 12px;
+      white-space: nowrap;
+      background: #392139;
+      border: 1px solid rgba(255, 93, 125, .35);
+    }
+
     .status-line {
       display: flex;
       align-items: center;
@@ -480,6 +488,77 @@
       text-align: center;
     }
 
+    .permission-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: none;
+      place-items: center;
+      padding: 20px;
+      background: rgba(2, 4, 12, .72);
+      backdrop-filter: blur(8px);
+    }
+
+    .permission-overlay.visible {
+      display: grid;
+    }
+
+    .permission-modal {
+      width: min(430px, 100%);
+      padding: 26px;
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      background: #12182a;
+      box-shadow: 0 25px 90px rgba(0, 0, 0, .55);
+      text-align: center;
+      animation: modalIn .2s ease;
+    }
+
+    @keyframes modalIn {
+      from {
+        opacity: 0;
+        transform: scale(.94) translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    .permission-icon {
+      display: grid;
+      place-items: center;
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 16px;
+      border-radius: 20px;
+      font-size: 30px;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+    }
+
+    .permission-modal h2 {
+      margin: 0 0 10px;
+      font-size: 21px;
+    }
+
+    .permission-modal p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    .permission-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 22px;
+    }
+
+    .permission-actions button {
+      flex: 1;
+    }
+
     @media (max-width: 760px) {
       .topbar {
         align-items: flex-start;
@@ -518,16 +597,42 @@
 </head>
 
 <body>
-  <main class="app">
+  <div class="permission-overlay" id="permissionOverlay">
+    <div class="permission-modal">
+      <div class="permission-icon">👤</div>
+      <h2>Запрос на подключение</h2>
+      <p id="permissionText">
+        Пользователь хочет подключиться к вашей комнате.
+      </p>
 
+      <div class="permission-actions">
+        <button class="button-danger" id="rejectConnectionBtn">
+          Отклонить
+        </button>
+
+        <button class="button-main" id="acceptConnectionBtn">
+          Разрешить
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <main class="app">
     <header class="topbar">
       <div class="brand">
         <div class="brand-icon">✦</div>
+
         <div>
-          <div class="brand-name">Nova<span>Link</span></div>
-          <div class="brand-subtitle">P2P File & Screen Sharing</div>
+          <div class="brand-name">
+            Nova<span>Link</span>
+          </div>
+
+          <div class="brand-subtitle">
+            P2P File & Screen Sharing
+          </div>
         </div>
       </div>
+
       <div class="connection-status" id="webrtcStatus">
         <div class="status-dot"></div>
         <span>Не связано</span>
@@ -537,7 +642,11 @@
     <div class="hero">
       <div class="hero-card">
         <h1>Связь без<br>серверов.</h1>
-        <p>NovaLink соединяет браузеры напрямую с помощью WebRTC. Файлы, сообщения и экран передаются P2P, без сохранения на сервере.</p>
+
+        <p>
+          NovaLink соединяет браузеры напрямую с помощью WebRTC.
+          Файлы, сообщения и экран передаются P2P, без сохранения на сервере.
+        </p>
       </div>
 
       <div class="card feature-list">
@@ -545,10 +654,12 @@
           <div class="feature-icon">🔒</div>
           <span>Полностью приватно</span>
         </div>
+
         <div class="feature">
           <div class="feature-icon">⚡</div>
           <span>Высокая скорость</span>
         </div>
+
         <div class="feature">
           <div class="feature-icon">📁</div>
           <span>Передача любых файлов</span>
@@ -565,21 +676,48 @@
       <div class="room-layout">
         <div>
           <span class="field-label">Моя комната</span>
+
           <div class="input-row">
-            <input type="text" id="myRoom" class="room-input" readonly>
-            <button class="button-secondary" id="copyRoomBtn">📋 Копировать</button>
+            <input
+              type="text"
+              id="myRoom"
+              class="room-input"
+              readonly
+            >
+
+            <button
+              class="button-secondary"
+              id="copyRoomBtn"
+            >
+              📋 Копировать
+            </button>
           </div>
         </div>
 
         <div>
           <span class="field-label">Подключиться к комнате</span>
+
           <div class="input-row">
-            <input type="text" id="remoteRoom" class="room-input" placeholder="XXXX">
-            <button class="button-main" id="connectButton">Связать</button>
+            <input
+              type="text"
+              id="remoteRoom"
+              class="room-input"
+              placeholder="XXXX"
+            >
+
+            <button
+              class="button-main"
+              id="connectButton"
+            >
+              Связать
+            </button>
           </div>
         </div>
       </div>
-      <div class="status-line" id="statusLine">Ожидание действий...</div>
+
+      <div class="status-line" id="statusLine">
+        Ожидание действий...
+      </div>
     </div>
 
     <div class="content-grid">
@@ -587,12 +725,29 @@
         <div class="card-title">
           <h2>Сообщения</h2>
         </div>
+
         <div class="messages" id="chatMessages">
-          <div class="empty-message">Нет сообщений.<br>Свяжитесь для чата.</div>
+          <div class="empty-message">
+            Нет сообщений.<br>
+            Свяжитесь для чата.
+          </div>
         </div>
+
         <div class="message-input">
-          <input type="text" id="chatInput" placeholder="Напишите сообщение..." disabled>
-          <button class="button-main" id="sendBtn" disabled>✈️</button>
+          <input
+            type="text"
+            id="chatInput"
+            placeholder="Напишите сообщение..."
+            disabled
+          >
+
+          <button
+            class="button-main"
+            id="sendBtn"
+            disabled
+          >
+            ✈️
+          </button>
         </div>
       </div>
 
@@ -600,12 +755,25 @@
         <div class="card-title">
           <h2>Отправка файла</h2>
         </div>
+
         <div class="file-zone">
           <div>
             <div class="file-icon">🗂️</div>
-            <p>Выберите файл для прямой передачи</p>
-            <input type="file" id="fileInput" disabled>
-            <div class="progress-text" id="fileStatus"></div>
+
+            <p>
+              Выберите файл для прямой передачи
+            </p>
+
+            <input
+              type="file"
+              id="fileInput"
+              disabled
+            >
+
+            <div
+              class="progress-text"
+              id="fileStatus"
+            ></div>
           </div>
         </div>
       </div>
@@ -614,62 +782,142 @@
     <div class="card screen-card">
       <div class="card-title">
         <h2>Демонстрация экрана</h2>
-        <small id="screenStatusLabel">В ожидании</small>
+
+        <small id="screenStatusLabel">
+          В ожидании
+        </small>
       </div>
+
       <div class="screen-controls">
-        <button class="button-secondary" id="shareScreenBtn" disabled>▶️ Начать трансляцию</button>
-        <button class="button-secondary" id="stopScreenBtn" style="display:none">⏹️ Остановить</button>
+        <button
+          class="button-secondary"
+          id="shareScreenBtn"
+          disabled
+        >
+          ▶️ Начать трансляцию
+        </button>
+
+        <button
+          class="button-secondary"
+          id="stopScreenBtn"
+          style="display:none"
+        >
+          ⏹️ Остановить
+        </button>
       </div>
+
       <div class="video-wrap">
-        <div class="video-placeholder" id="videoPlaceholder">Нет активной трансляции</div>
-        <video id="remoteVideo" autoplay playsinline style="display:none;"></video>
+        <div
+          class="video-placeholder"
+          id="videoPlaceholder"
+        >
+          Нет активной трансляции
+        </div>
+
+        <video
+          id="remoteVideo"
+          autoplay
+          playsinline
+          style="display:none;"
+        ></video>
       </div>
     </div>
 
     <div class="footer">
       NovaLink Project &middot; P2P WebRTC Demo
     </div>
-
   </main>
 
   <script>
-    // Внимание: если этот сервер недоступен, P2P соединение не установится.
-    // Но номер комнаты теперь будет отображаться в любом случае.
-    const signalingUrl = "wss://nowalink-signaling.onrender.com";
-    const stunServers = [{ urls: "stun:stun.l.google.com:19302" }];
-    const chunkSize = 16384; 
+    const signalingUrl =
+      "wss://nowalink-signaling.onrender.com";
 
-    const statusLine = document.getElementById("statusLine");
-    const webrtcStatus = document.getElementById("webrtcStatus");
-    const webrtcStatusText = webrtcStatus.querySelector("span");
-    const webrtcStatusDot = webrtcStatus.querySelector(".status-dot");
-    
-    const myRoomInput = document.getElementById("myRoom");
-    const copyRoomBtn = document.getElementById("copyRoomBtn");
-    const remoteRoom = document.getElementById("remoteRoom");
-    const connectButton = document.getElementById("connectButton");
+    const stunServers = [
+      {
+        urls: "stun:stun.l.google.com:19302"
+      }
+    ];
 
-    const chatMessages = document.getElementById("chatMessages");
-    const chatInput = document.getElementById("chatInput");
-    const sendBtn = document.getElementById("sendBtn");
+    const chunkSize = 16384;
 
-    const fileInput = document.getElementById("fileInput");
-    const fileStatus = document.getElementById("fileStatus");
+    const statusLine =
+      document.getElementById("statusLine");
 
-    const shareScreenBtn = document.getElementById("shareScreenBtn");
-    const stopScreenBtn = document.getElementById("stopScreenBtn");
-    const remoteVideo = document.getElementById("remoteVideo");
-    const videoPlaceholder = document.getElementById("videoPlaceholder");
-    const screenStatusLabel = document.getElementById("screenStatusLabel");
+    const webrtcStatus =
+      document.getElementById("webrtcStatus");
+
+    const webrtcStatusText =
+      webrtcStatus.querySelector("span");
+
+    const webrtcStatusDot =
+      webrtcStatus.querySelector(".status-dot");
+
+    const myRoomInput =
+      document.getElementById("myRoom");
+
+    const copyRoomBtn =
+      document.getElementById("copyRoomBtn");
+
+    const remoteRoom =
+      document.getElementById("remoteRoom");
+
+    const connectButton =
+      document.getElementById("connectButton");
+
+    const chatMessages =
+      document.getElementById("chatMessages");
+
+    const chatInput =
+      document.getElementById("chatInput");
+
+    const sendBtn =
+      document.getElementById("sendBtn");
+
+    const fileInput =
+      document.getElementById("fileInput");
+
+    const fileStatus =
+      document.getElementById("fileStatus");
+
+    const shareScreenBtn =
+      document.getElementById("shareScreenBtn");
+
+    const stopScreenBtn =
+      document.getElementById("stopScreenBtn");
+
+    const remoteVideo =
+      document.getElementById("remoteVideo");
+
+    const videoPlaceholder =
+      document.getElementById("videoPlaceholder");
+
+    const screenStatusLabel =
+      document.getElementById("screenStatusLabel");
+
+    const permissionOverlay =
+      document.getElementById("permissionOverlay");
+
+    const permissionText =
+      document.getElementById("permissionText");
+
+    const acceptConnectionBtn =
+      document.getElementById("acceptConnectionBtn");
+
+    const rejectConnectionBtn =
+      document.getElementById("rejectConnectionBtn");
 
     let socket = null;
     let peer = null;
     let dataChannel = null;
-    let room = Math.random().toString(36).substring(2, 6).toUpperCase();
-    let localStream = null;
 
-    // ПРАВКА 1: Показываем комнату сразу, не дожидаясь ответа сервера
-    myRoomInput.value = room;
+    let room = Math.random()
+      .toString(36)
+      .substring(2, 6)
+      .toUpperCase();
+
+    let targetRoom = "";
+    let pendingRequestRoom = "";
+    let localStream = null;
 
     let receivedFileBuffers = [];
     let receivedFileSize = 0;
@@ -677,133 +925,367 @@
     let incomingFileName = "";
     let incomingFileType = "";
 
-    function setStatus(msg, isError = false) {
-      statusLine.textContent = msg;
-      statusLine.style.color = isError ? "var(--red)" : "#e9c768";
+    myRoomInput.value = room;
+
+    function setStatus(message, isError = false) {
+      statusLine.textContent = message;
+
+      statusLine.style.color = isError
+        ? "var(--red)"
+        : "#e9c768";
     }
 
     function updateConnectionUI(connected) {
       if (connected) {
         webrtcStatusDot.classList.add("online");
         webrtcStatusText.textContent = "Связано (P2P)";
+
         chatInput.disabled = false;
         sendBtn.disabled = false;
         fileInput.disabled = false;
         shareScreenBtn.disabled = false;
-        setStatus("P2P соединение установлено", false);
-        chatMessages.innerHTML = `<div class="system-message">Успешное P2P подключение!</div>`;
-      } else {
-        webrtcStatusDot.classList.remove("online");
-        webrtcStatusText.textContent = "Не связано";
-        chatInput.disabled = true;
-        sendBtn.disabled = true;
-        fileInput.disabled = true;
-        shareScreenBtn.disabled = true;
-        stopScreenBtn.style.display = "none";
-        shareScreenBtn.style.display = "inline-block";
-        remoteVideo.style.display = "none";
-        videoPlaceholder.style.display = "grid";
-        screenStatusLabel.textContent = "В ожидании";
-        if (localStream) {
-          localStream.getTracks().forEach(t => t.stop());
-        }
+
+        setStatus("P2P соединение установлено");
+
+        chatMessages.innerHTML =
+          '<div class="system-message">' +
+          "Успешное P2P подключение!" +
+          "</div>";
+
+        return;
+      }
+
+      webrtcStatusDot.classList.remove("online");
+      webrtcStatusText.textContent = "Не связано";
+
+      chatInput.disabled = true;
+      sendBtn.disabled = true;
+      fileInput.disabled = true;
+      shareScreenBtn.disabled = true;
+
+      stopScreenBtn.style.display = "none";
+      shareScreenBtn.style.display = "inline-block";
+
+      remoteVideo.style.display = "none";
+      videoPlaceholder.style.display = "grid";
+
+      screenStatusLabel.textContent = "В ожидании";
+
+      if (localStream) {
+        localStream.getTracks().forEach(track => {
+          track.stop();
+        });
+
+        localStream = null;
       }
     }
 
     function appendMessage(text, isMine = false) {
-      const emptyMsg = chatMessages.querySelector(".empty-message");
-      if (emptyMsg) emptyMsg.remove();
+      const emptyMessage =
+        chatMessages.querySelector(".empty-message");
 
-      const el = document.createElement("div");
-      el.className = `message ${isMine ? "mine" : ""}`;
-      el.textContent = text;
-      chatMessages.appendChild(el);
-      chatMessages.scrollTop = chatMessages.scrollHeight;
+      if (emptyMessage) {
+        emptyMessage.remove();
+      }
+
+      const element =
+        document.createElement("div");
+
+      element.className =
+        "message" + (isMine ? " mine" : "");
+
+      element.textContent = text;
+
+      chatMessages.appendChild(element);
+      chatMessages.scrollTop =
+        chatMessages.scrollHeight;
     }
 
-    function connectSocket(targetRoom = null) {
-      socket = new WebSocket(signalingUrl);
+    function showPermissionRequest(requestRoom) {
+      pendingRequestRoom = requestRoom;
 
-      socket.onopen = () => {
-        if (!targetRoom) {
-          socket.send(JSON.stringify({ type: "join", room }));
-          // Старая строка myRoomInput.value = room; убрана отсюда
-        } else {
-          socket.send(JSON.stringify({ type: "join", room: targetRoom }));
-        }
-      };
+      permissionText.textContent =
+        "Пользователь из комнаты " +
+        requestRoom +
+        " хочет подключиться к вам.";
 
-      socket.onmessage = async (e) => {
-        const msg = JSON.parse(e.data);
+      permissionOverlay.classList.add("visible");
+    }
 
-        if (msg.type === "joined") {
-          if (!targetRoom) setStatus("Ожидание партнера в комнате " + room);
-        } else if (msg.type === "error") {
-          setStatus(msg.message, true);
-        } else if (msg.type === "offer") {
-          if (!peer) createPeer(false);
-          await peer.setRemoteDescription(new RTCSessionDescription(msg.sdp));
-          const answer = await peer.createAnswer();
-          await peer.setLocalDescription(answer);
-          socket.send(JSON.stringify({ type: "answer", sdp: answer, room: targetRoom || room }));
-        } else if (msg.type === "answer") {
-          await peer.setRemoteDescription(new RTCSessionDescription(msg.sdp));
-        } else if (msg.type === "ice") {
-          if (peer && msg.candidate) {
-            await peer.addIceCandidate(new RTCIceCandidate(msg.candidate));
+    function hidePermissionRequest() {
+      permissionOverlay.classList.remove("visible");
+    }
+
+    function sendSocketMessage(message) {
+      if (
+        socket &&
+        socket.readyState === WebSocket.OPEN
+      ) {
+        socket.send(JSON.stringify(message));
+        return true;
+      }
+
+      return false;
+    }
+
+    function closeCurrentSocket() {
+      if (!socket) {
+        return;
+      }
+
+      socket.onclose = null;
+
+      if (
+        socket.readyState === WebSocket.OPEN ||
+        socket.readyState === WebSocket.CONNECTING
+      ) {
+        socket.close();
+      }
+
+      socket = null;
+    }
+
+    function connectSocket(joinRoom) {
+      return new Promise((resolve, reject) => {
+        closeCurrentSocket();
+
+        socket = new WebSocket(signalingUrl);
+
+        let joined = false;
+
+        socket.onopen = () => {
+          sendSocketMessage({
+            type: "join",
+            room: joinRoom
+          });
+        };
+
+        socket.onmessage = async event => {
+          let message;
+
+          try {
+            message = JSON.parse(event.data);
+          } catch {
+            return;
           }
-        }
-      };
 
-      socket.onclose = () => {
-        setStatus("Отключено от Signaling Server");
-      };
+          if (message.type === "joined") {
+            if (!joined) {
+              joined = true;
+              resolve();
+            }
+
+            if (joinRoom === room) {
+              setStatus(
+                "Ожидание подключения к комнате " + room
+              );
+            }
+
+            return;
+          }
+
+          if (message.type === "error") {
+            setStatus(message.message, true);
+
+            if (!joined) {
+              joined = true;
+              reject(new Error(message.message));
+            }
+
+            return;
+          }
+
+          if (message.type === "connection-request") {
+            const requesterRoom =
+              message.from || "неизвестной комнаты";
+
+            showPermissionRequest(requesterRoom);
+            return;
+          }
+
+          if (message.type === "connection-accepted") {
+            setStatus(
+              "Подключение разрешено. Установка P2P соединения..."
+            );
+
+            if (!peer) {
+              createPeer(true);
+            }
+
+            return;
+          }
+
+          if (message.type === "connection-rejected") {
+            setStatus(
+              "Пользователь отклонил подключение",
+              true
+            );
+
+            connectButton.disabled = false;
+            return;
+          }
+
+          if (message.type === "offer") {
+            if (!peer) {
+              createPeer(false);
+            }
+
+            await peer.setRemoteDescription(
+              new RTCSessionDescription(message.sdp)
+            );
+
+            const answer =
+              await peer.createAnswer();
+
+            await peer.setLocalDescription(answer);
+
+            sendSocketMessage({
+              type: "answer",
+              sdp: peer.localDescription,
+              room: room
+            });
+
+            return;
+          }
+
+          if (message.type === "answer") {
+            if (!peer) {
+              return;
+            }
+
+            await peer.setRemoteDescription(
+              new RTCSessionDescription(message.sdp)
+            );
+
+            return;
+          }
+
+          if (message.type === "ice") {
+            if (!peer || !message.candidate) {
+              return;
+            }
+
+            try {
+              await peer.addIceCandidate(
+                new RTCIceCandidate(message.candidate)
+              );
+            } catch (error) {
+              console.error(
+                "Ошибка ICE-кандидата:",
+                error
+              );
+            }
+
+            return;
+          }
+
+          if (message.type === "peer-left") {
+            updateConnectionUI(false);
+            setStatus("Пользователь отключился");
+          }
+        };
+
+        socket.onerror = () => {
+          setStatus(
+            "Ошибка подключения к Signaling Server",
+            true
+          );
+
+          if (!joined) {
+            joined = true;
+            reject(new Error("Ошибка WebSocket"));
+          }
+        };
+
+        socket.onclose = () => {
+          if (!joined) {
+            joined = true;
+            reject(
+              new Error("Signaling Server отключён")
+            );
+          }
+        };
+      });
     }
 
     function createPeer(isInitiator) {
-      peer = new RTCPeerConnection({ iceServers: stunServers });
+      peer = new RTCPeerConnection({
+        iceServers: stunServers
+      });
 
-      peer.onicecandidate = (e) => {
-        if (e.candidate && socket && socket.readyState === WebSocket.OPEN) {
-          socket.send(JSON.stringify({
-            type: "ice",
-            candidate: e.candidate,
-            room: remoteRoom.value.trim().toUpperCase() || room
-          }));
+      peer.onicecandidate = event => {
+        if (!event.candidate) {
+          return;
+        }
+
+        sendSocketMessage({
+          type: "ice",
+          candidate: event.candidate,
+          room: targetRoom || room
+        });
+      };
+
+      peer.onconnectionstatechange = () => {
+        if (
+          peer.connectionState === "failed" ||
+          peer.connectionState === "disconnected" ||
+          peer.connectionState === "closed"
+        ) {
+          updateConnectionUI(false);
         }
       };
 
-      peer.ontrack = (e) => {
+      peer.ontrack = event => {
         videoPlaceholder.style.display = "none";
         remoteVideo.style.display = "block";
-        remoteVideo.srcObject = e.streams[0];
-        screenStatusLabel.textContent = "Смотрим трансляцию";
+        remoteVideo.srcObject = event.streams[0];
+        screenStatusLabel.textContent =
+          "Смотрим трансляцию";
       };
 
       if (isInitiator) {
-        dataChannel = peer.createDataChannel("chat");
+        dataChannel =
+          peer.createDataChannel("chat");
+
         setupDataChannel();
 
-        peer.createOffer().then(offer => {
-          return peer.setLocalDescription(offer);
-        }).then(() => {
-          socket.send(JSON.stringify({
-            type: "offer",
-            sdp: peer.localDescription,
-            room: remoteRoom.value.trim().toUpperCase()
-          }));
-        });
+        peer.createOffer()
+          .then(offer => {
+            return peer.setLocalDescription(offer);
+          })
+          .then(() => {
+            sendSocketMessage({
+              type: "offer",
+              sdp: peer.localDescription,
+              room: targetRoom
+            });
+          })
+          .catch(error => {
+            console.error(
+              "Ошибка создания offer:",
+              error
+            );
+
+            setStatus(
+              "Не удалось создать подключение",
+              true
+            );
+          });
       } else {
-        peer.ondatachannel = (e) => {
-          dataChannel = e.channel;
+        peer.ondatachannel = event => {
+          dataChannel = event.channel;
           setupDataChannel();
         };
       }
     }
 
     function setupDataChannel() {
+      if (!dataChannel) {
+        return;
+      }
+
       dataChannel.binaryType = "arraybuffer";
-      
+
       dataChannel.onopen = () => {
         updateConnectionUI(true);
       };
@@ -811,199 +1293,472 @@
       dataChannel.onclose = () => {
         updateConnectionUI(false);
         setStatus("P2P соединение разорвано");
-        appendMessage("Система: Партнер отключился.", false);
+        appendMessage(
+          "Система: партнёр отключился.",
+          false
+        );
       };
 
-      dataChannel.onmessage = (e) => {
-        if (typeof e.data === "string") {
+      dataChannel.onerror = error => {
+        console.error(
+          "Ошибка DataChannel:",
+          error
+        );
+      };
+
+      dataChannel.onmessage = event => {
+        if (typeof event.data === "string") {
           try {
-            const data = JSON.parse(e.data);
+            const data = JSON.parse(event.data);
+
             if (data.type === "chat") {
               appendMessage(data.text, false);
-            } else if (data.type === "file-start") {
+            }
+
+            if (data.type === "file-start") {
               expectedFileSize = data.size;
               incomingFileName = data.name;
-              incomingFileType = data.mime;
+              incomingFileType =
+                data.mime || "application/octet-stream";
+
               receivedFileBuffers = [];
               receivedFileSize = 0;
-              fileStatus.textContent = `Прием файла: ${incomingFileName}...`;
-            } else if (data.type === "file-end") {
-              fileStatus.textContent = `Файл получен: ${incomingFileName}`;
+
+              fileStatus.textContent =
+                "Приём файла: " +
+                incomingFileName +
+                "...";
+            }
+
+            if (data.type === "file-end") {
+              fileStatus.textContent =
+                "Файл получен: " +
+                incomingFileName;
+
               saveReceivedFile();
             }
           } catch {
-            console.log("Not JSON string data");
+            console.log(
+              "Получена неизвестная строка"
+            );
           }
-        } else {
-          receivedFileBuffers.push(e.data);
-          receivedFileSize += e.data.byteLength;
-          const percent = ((receivedFileSize / expectedFileSize) * 100).toFixed(1);
-          fileStatus.textContent = `Прием: ${percent}%`;
+
+          return;
         }
+
+        receivedFileBuffers.push(event.data);
+        receivedFileSize += event.data.byteLength;
+
+        const percent = expectedFileSize
+          ? (
+              receivedFileSize /
+              expectedFileSize *
+              100
+            ).toFixed(1)
+          : 0;
+
+        fileStatus.textContent =
+          "Приём: " + percent + "%";
       };
     }
 
     function saveReceivedFile() {
-      const blob = new Blob(receivedFileBuffers, { type: incomingFileType });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = incomingFileName;
-      a.className = "download-link";
-      a.textContent = `💾 Скачать: ${incomingFileName}`;
-      
-      const emptyMsg = chatMessages.querySelector(".empty-message");
-      if (emptyMsg) emptyMsg.remove();
-      
-      const el = document.createElement("div");
-      el.className = "message";
-      el.appendChild(a);
-      chatMessages.appendChild(el);
-      chatMessages.scrollTop = chatMessages.scrollHeight;
+      const blob = new Blob(
+        receivedFileBuffers,
+        {
+          type: incomingFileType
+        }
+      );
+
+      const url =
+        URL.createObjectURL(blob);
+
+      const link =
+        document.createElement("a");
+
+      link.href = url;
+      link.download = incomingFileName;
+      link.className = "download-link";
+      link.textContent =
+        "💾 Скачать: " + incomingFileName;
+
+      const emptyMessage =
+        chatMessages.querySelector(".empty-message");
+
+      if (emptyMessage) {
+        emptyMessage.remove();
+      }
+
+      const element =
+        document.createElement("div");
+
+      element.className = "message";
+      element.appendChild(link);
+
+      chatMessages.appendChild(element);
+      chatMessages.scrollTop =
+        chatMessages.scrollHeight;
     }
 
     function sendChatMessage() {
       const text = chatInput.value.trim();
-      if (!text || !dataChannel || dataChannel.readyState !== "open") return;
 
-      dataChannel.send(JSON.stringify({ type: "chat", text }));
+      if (
+        !text ||
+        !dataChannel ||
+        dataChannel.readyState !== "open"
+      ) {
+        return;
+      }
+
+      dataChannel.send(
+        JSON.stringify({
+          type: "chat",
+          text: text
+        })
+      );
+
       appendMessage(text, true);
       chatInput.value = "";
     }
 
     async function sendFile(file) {
-      if (!dataChannel || dataChannel.readyState !== "open") return;
+      if (
+        !dataChannel ||
+        dataChannel.readyState !== "open"
+      ) {
+        return;
+      }
 
-      dataChannel.send(JSON.stringify({
-        type: "file-start",
-        name: file.name,
-        size: file.size,
-        mime: file.type
-      }));
+      dataChannel.send(
+        JSON.stringify({
+          type: "file-start",
+          name: file.name,
+          size: file.size,
+          mime: file.type
+        })
+      );
 
-      const arrayBuffer = await file.arrayBuffer();
+      const arrayBuffer =
+        await file.arrayBuffer();
+
       let offset = 0;
 
+      dataChannel.bufferedAmountLowThreshold =
+        65536;
+
       const sendChunk = () => {
-        while (offset < arrayBuffer.byteLength) {
-          if (dataChannel.bufferedAmount > dataChannel.bufferedAmountLowThreshold) {
-            dataChannel.onbufferedamountlow = () => {
-              dataChannel.onbufferedamountlow = null;
-              sendChunk();
-            };
+        while (
+          offset < arrayBuffer.byteLength
+        ) {
+          if (
+            dataChannel.bufferedAmount >
+            dataChannel.bufferedAmountLowThreshold
+          ) {
+            dataChannel.onbufferedamountlow =
+              () => {
+                dataChannel.onbufferedamountlow =
+                  null;
+
+                sendChunk();
+              };
+
             return;
           }
 
-          const chunk = arrayBuffer.slice(offset, offset + chunkSize);
+          const end = Math.min(
+            offset + chunkSize,
+            arrayBuffer.byteLength
+          );
+
+          const chunk =
+            arrayBuffer.slice(offset, end);
+
           dataChannel.send(chunk);
-          offset += chunkSize;
-          
-          const percent = ((offset / arrayBuffer.byteLength) * 100).toFixed(1);
-          fileStatus.textContent = `Отправка: ${Math.min(percent, 100)}%`;
+          offset = end;
+
+          const percent =
+            (
+              offset /
+              arrayBuffer.byteLength *
+              100
+            ).toFixed(1);
+
+          fileStatus.textContent =
+            "Отправка: " +
+            Math.min(percent, 100) +
+            "%";
         }
-        
-        dataChannel.send(JSON.stringify({ type: "file-end" }));
-        fileStatus.textContent = "Файл успешно отправлен!";
-        appendMessage(`📎 Отправлен файл: ${file.name}`, true);
+
+        dataChannel.send(
+          JSON.stringify({
+            type: "file-end"
+          })
+        );
+
+        fileStatus.textContent =
+          "Файл успешно отправлен!";
+
+        appendMessage(
+          "📎 Отправлен файл: " + file.name,
+          true
+        );
       };
 
-      dataChannel.bufferedAmountLowThreshold = 65536; 
       sendChunk();
     }
 
     async function startScreenShare() {
+      if (!peer) {
+        return;
+      }
+
       try {
-        localStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-        
+        localStream =
+          await navigator.mediaDevices.getDisplayMedia({
+            video: true,
+            audio: true
+          });
+
         localStream.getTracks().forEach(track => {
           peer.addTrack(track, localStream);
-          track.onended = stopScreenShare; 
+          track.onended = stopScreenShare;
         });
 
-        const offer = await peer.createOffer();
+        const offer =
+          await peer.createOffer();
+
         await peer.setLocalDescription(offer);
-        socket.send(JSON.stringify({
+
+        sendSocketMessage({
           type: "offer",
           sdp: peer.localDescription,
-          room: remoteRoom.value.trim().toUpperCase() || room
-        }));
+          room: targetRoom || room
+        });
 
         shareScreenBtn.style.display = "none";
         stopScreenBtn.style.display = "inline-block";
-        screenStatusLabel.textContent = "Транслируем экран";
-      } catch (e) {
-        console.error(e);
-        screenStatusLabel.textContent = "Доступ к экрану запрещен";
+        screenStatusLabel.textContent =
+          "Транслируем экран";
+      } catch (error) {
+        console.error(error);
+
+        screenStatusLabel.textContent =
+          "Доступ к экрану запрещён";
       }
     }
 
-    function stopScreenShare() {
+    async function stopScreenShare() {
       if (localStream) {
-        localStream.getTracks().forEach(t => t.stop());
+        localStream.getTracks().forEach(track => {
+          track.stop();
+        });
+
         localStream = null;
       }
-      shareScreenBtn.style.display = "inline-block";
-      stopScreenBtn.style.display = "none";
-      screenStatusLabel.textContent = "В ожидании";
-      
-      const senders = peer.getSenders();
-      senders.forEach(sender => peer.removeTrack(sender));
 
-      peer.createOffer().then(offer => peer.setLocalDescription(offer)).then(() => {
-        socket.send(JSON.stringify({
-          type: "offer",
-          sdp: peer.localDescription,
-          room: remoteRoom.value.trim().toUpperCase() || room
-        }));
+      shareScreenBtn.style.display =
+        "inline-block";
+
+      stopScreenBtn.style.display =
+        "none";
+
+      screenStatusLabel.textContent =
+        "В ожидании";
+
+      if (!peer) {
+        return;
+      }
+
+      peer.getSenders().forEach(sender => {
+        if (sender.track) {
+          peer.removeTrack(sender);
+        }
+      });
+
+      const offer =
+        await peer.createOffer();
+
+      await peer.setLocalDescription(offer);
+
+      sendSocketMessage({
+        type: "offer",
+        sdp: peer.localDescription,
+        room: targetRoom || room
       });
     }
 
-    copyRoomBtn.addEventListener("click", () => {
-      navigator.clipboard.writeText(room);
-      const originalText = copyRoomBtn.textContent;
-      copyRoomBtn.textContent = "✓ Скопировано";
-      setTimeout(() => copyRoomBtn.textContent = originalText, 2000);
-    });
+    copyRoomBtn.addEventListener(
+      "click",
+      async () => {
+        try {
+          await navigator.clipboard.writeText(room);
 
-    connectButton.addEventListener("click", () => {
-      const targetRoom = remoteRoom.value.trim().toUpperCase();
+          const originalText =
+            copyRoomBtn.textContent;
 
-      if (!targetRoom) {
-        alert("Введи код комнаты.");
-        return;
+          copyRoomBtn.textContent =
+            "✓ Скопировано";
+
+          setTimeout(() => {
+            copyRoomBtn.textContent =
+              originalText;
+          }, 2000);
+        } catch {
+          myRoomInput.select();
+          document.execCommand("copy");
+        }
       }
+    );
 
-      if (targetRoom === room) {
-        alert("Нельзя подключиться к собственной комнате.");
-        return;
+    connectButton.addEventListener(
+      "click",
+      async () => {
+        const requestedRoom =
+          remoteRoom.value.trim().toUpperCase();
+
+        if (!requestedRoom) {
+          alert("Введи код комнаты.");
+          return;
+        }
+
+        if (requestedRoom === room) {
+          alert(
+            "Нельзя подключиться к собственной комнате."
+          );
+          return;
+        }
+
+        connectButton.disabled = true;
+        targetRoom = requestedRoom;
+
+        if (peer) {
+          peer.close();
+          peer = null;
+          dataChannel = null;
+        }
+
+        setStatus("Подключение к комнате...");
+
+        try {
+          await connectSocket(targetRoom);
+
+          sendSocketMessage({
+            type: "connection-request",
+            room: targetRoom,
+            from: room
+          });
+
+          setStatus(
+            "Запрос отправлен. Ожидание разрешения..."
+          );
+        } catch (error) {
+          console.error(error);
+
+          connectButton.disabled = false;
+
+          setStatus(
+            "Не удалось подключиться к комнате",
+            true
+          );
+        }
       }
+    );
 
-      if (socket) {
-        // ПРАВКА 2: Отвязываем старое событие, чтобы не было ложного сообщения об отключении
-        socket.onclose = null; 
-        socket.close();
+    acceptConnectionBtn.addEventListener(
+      "click",
+      () => {
+        if (!pendingRequestRoom) {
+          return;
+        }
+
+        targetRoom = pendingRequestRoom;
+
+        sendSocketMessage({
+          type: "connection-accepted",
+          room: pendingRequestRoom,
+          from: room
+        });
+
+        hidePermissionRequest();
+
+        setStatus(
+          "Подключение разрешено. Ожидание WebRTC..."
+        );
+
+        pendingRequestRoom = "";
       }
+    );
 
-      setStatus("Подключение...");
-      connectSocket(targetRoom);
-      createPeer(true);
-    });
+    rejectConnectionBtn.addEventListener(
+      "click",
+      () => {
+        if (!pendingRequestRoom) {
+          return;
+        }
 
-    sendBtn.addEventListener("click", sendChatMessage);
-    chatInput.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") sendChatMessage();
-    });
+        sendSocketMessage({
+          type: "connection-rejected",
+          room: pendingRequestRoom,
+          from: room
+        });
 
-    fileInput.addEventListener("change", (e) => {
-      const file = e.target.files[0];
-      if (file) sendFile(file);
-    });
+        hidePermissionRequest();
 
-    shareScreenBtn.addEventListener("click", startScreenShare);
-    stopScreenBtn.addEventListener("click", stopScreenShare);
+        setStatus(
+          "Запрос на подключение отклонён",
+          true
+        );
 
-    connectSocket();
+        pendingRequestRoom = "";
+      }
+    );
 
+    sendBtn.addEventListener(
+      "click",
+      sendChatMessage
+    );
+
+    chatInput.addEventListener(
+      "keypress",
+      event => {
+        if (event.key === "Enter") {
+          sendChatMessage();
+        }
+      }
+    );
+
+    fileInput.addEventListener(
+      "change",
+      event => {
+        const file = event.target.files[0];
+
+        if (file) {
+          sendFile(file);
+          fileInput.value = "";
+        }
+      }
+    );
+
+    shareScreenBtn.addEventListener(
+      "click",
+      startScreenShare
+    );
+
+    stopScreenBtn.addEventListener(
+      "click",
+      stopScreenShare
+    );
+
+    connectSocket(room)
+      .catch(error => {
+        console.error(error);
+
+        setStatus(
+          "Signaling Server недоступен",
+          true
+        );
+      });
   </script>
 </body>
 </html>
