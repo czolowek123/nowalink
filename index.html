@@ -3,1761 +3,382 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NovaLink — P2P связь</title>
+  <title>Online Friends</title>
 
   <style>
-    :root {
-      --bg: #080b14;
-      --panel: rgba(18, 24, 42, .78);
-      --panel-light: rgba(28, 37, 63, .72);
-      --border: rgba(142, 164, 255, .18);
-      --text: #f2f5ff;
-      --muted: #929dbb;
-      --blue: #6786ff;
-      --purple: #995cff;
-      --green: #43d99a;
-      --red: #ff5d7d;
-      --shadow: 0 25px 80px rgba(0, 0, 0, .35);
-    }
-
     * {
       box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
     }
 
     body {
-      margin: 0;
       min-height: 100vh;
-      color: var(--text);
-      font-family: Inter, system-ui, Arial, sans-serif;
       background:
-        radial-gradient(circle at 0% 0%, rgba(70, 99, 220, .35), transparent 32%),
-        radial-gradient(circle at 100% 100%, rgba(142, 59, 204, .30), transparent 35%),
-        var(--bg);
-    }
-
-    body::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      opacity: .18;
-      background-image:
-        linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
-      background-size: 35px 35px;
-    }
-
-    button,
-    input {
-      font: inherit;
-    }
-
-    button {
-      border: 0;
-      cursor: pointer;
+        radial-gradient(circle at top left, #26366f, transparent 35%),
+        linear-gradient(135deg, #10131f, #181c2f);
       color: white;
-      font-weight: 700;
-      transition: .2s ease;
+      padding: 25px;
     }
 
-    button:hover:not(:disabled) {
-      transform: translateY(-2px);
-      filter: brightness(1.12);
-    }
-
-    button:active:not(:disabled) {
-      transform: translateY(0);
-    }
-
-    button:disabled {
-      cursor: not-allowed;
-      opacity: .4;
-    }
-
-    .app {
-      position: relative;
-      width: min(1120px, calc(100% - 30px));
+    .container {
+      width: 100%;
+      max-width: 1100px;
+      min-height: 650px;
       margin: auto;
-      padding: 28px 0 45px;
+      display: flex;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 24px;
+      background: rgba(20, 24, 42, .88);
+      box-shadow: 0 25px 70px rgba(0,0,0,.4);
+      backdrop-filter: blur(15px);
     }
 
-    .topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 20px;
+    .sidebar {
+      width: 330px;
+      padding: 25px;
+      border-right: 1px solid rgba(255,255,255,.1);
+      background: rgba(8, 11, 24, .45);
+    }
+
+    .logo {
+      margin-bottom: 28px;
+      font-size: 25px;
+      font-weight: bold;
+      color: #7c9cff;
+    }
+
+    .logo span {
+      color: #ffffff;
+    }
+
+    .search {
+      width: 100%;
+      padding: 13px 15px;
       margin-bottom: 22px;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 12px;
+      outline: none;
+      color: white;
+      background: rgba(255,255,255,.07);
     }
 
-    .brand {
+    .search::placeholder {
+      color: #8990a8;
+    }
+
+    .section-title {
+      margin-bottom: 12px;
+      color: #939ab5;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .user {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 13px;
+      padding: 13px;
+      margin-bottom: 9px;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: .2s;
     }
 
-    .brand-icon {
-      display: grid;
-      place-items: center;
-      width: 46px;
-      height: 46px;
-      border-radius: 15px;
-      font-size: 23px;
-      background: linear-gradient(135deg, var(--blue), var(--purple));
-      box-shadow: 0 10px 30px rgba(103, 134, 255, .35);
+    .user:hover,
+    .user.active {
+      background: rgba(124,156,255,.18);
     }
 
-    .brand-name {
-      font-size: 21px;
-      font-weight: 850;
-      letter-spacing: .3px;
+    .avatar {
+      position: relative;
+      width: 45px;
+      height: 45px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      border-radius: 50%;
+      color: white;
+      font-size: 18px;
+      font-weight: bold;
+      background: linear-gradient(135deg, #667eea, #764ba2);
     }
 
-    .brand-name span {
-      color: #91a9ff;
+    .avatar.green {
+      background: linear-gradient(135deg, #11998e, #38ef7d);
     }
 
-    .brand-subtitle {
-      margin-top: 3px;
-      color: var(--muted);
+    .avatar.orange {
+      background: linear-gradient(135deg, #f7971e, #ffd200);
+    }
+
+    .online-dot {
+      position: absolute;
+      right: 0;
+      bottom: 1px;
+      width: 12px;
+      height: 12px;
+      border: 2px solid #15192b;
+      border-radius: 50%;
+      background: #37e27b;
+    }
+
+    .offline .online-dot {
+      background: #72788f;
+    }
+
+    .user-info {
+      min-width: 0;
+    }
+
+    .username {
+      font-weight: bold;
+    }
+
+    .status {
+      margin-top: 4px;
+      color: #8f97af;
       font-size: 12px;
     }
 
-    .connection-status {
+    .content {
+      flex: 1;
+      padding: 50px;
+    }
+
+    .profile {
+      max-width: 650px;
+      margin: auto;
+      text-align: center;
+    }
+
+    .big-avatar {
+      width: 120px;
+      height: 120px;
       display: flex;
       align-items: center;
-      gap: 9px;
-      padding: 10px 14px;
-      color: var(--muted);
-      font-size: 13px;
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      background: rgba(18, 24, 42, .65);
-    }
-
-    .status-dot {
-      width: 9px;
-      height: 9px;
+      justify-content: center;
+      margin: 20px auto;
       border-radius: 50%;
-      background: #e5b949;
-      box-shadow: 0 0 14px #e5b949;
+      color: white;
+      font-size: 44px;
+      font-weight: bold;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      box-shadow: 0 10px 35px rgba(102,126,234,.35);
     }
 
-    .status-dot.online {
-      background: var(--green);
-      box-shadow: 0 0 14px var(--green);
+    h1 {
+      margin-bottom: 8px;
+      font-size: 32px;
     }
 
-    .hero {
-      display: grid;
-      grid-template-columns: 1.2fr .8fr;
-      gap: 18px;
-      margin-bottom: 18px;
+    .online-text {
+      color: #48e58a;
+      font-size: 15px;
     }
 
-    .hero-card,
-    .card {
-      border: 1px solid var(--border);
-      border-radius: 24px;
-      background: var(--panel);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(20px);
-    }
-
-    .hero-card {
-      min-height: 245px;
-      padding: 30px;
-      overflow: hidden;
-      position: relative;
-    }
-
-    .hero-card::after {
-      content: "";
-      position: absolute;
-      width: 270px;
-      height: 270px;
-      right: -95px;
-      top: -100px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #708cff55, #a455ff33);
-      filter: blur(3px);
-    }
-
-    .hero h1 {
-      max-width: 580px;
-      margin: 0 0 12px;
-      font-size: clamp(30px, 5vw, 48px);
-      line-height: 1.04;
-      letter-spacing: -1.8px;
-    }
-
-    .hero p {
-      max-width: 580px;
-      margin: 0;
-      color: var(--muted);
+    .description {
+      max-width: 450px;
+      margin: 22px auto;
+      color: #a8aec2;
       line-height: 1.6;
     }
 
-    .feature-list {
-      position: relative;
-      z-index: 1;
+    .cards {
       display: grid;
+      grid-template-columns: repeat(3, 1fr);
       gap: 14px;
-      align-content: center;
-      height: 100%;
-      padding: 25px;
-    }
-
-    .feature {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      color: #cbd4ef;
-      font-size: 14px;
-    }
-
-    .feature-icon {
-      display: grid;
-      place-items: center;
-      width: 37px;
-      height: 37px;
-      border-radius: 11px;
-      background: var(--panel-light);
-      border: 1px solid var(--border);
+      margin-top: 35px;
     }
 
     .card {
-      padding: 21px;
-    }
-
-    .room-card {
-      margin-bottom: 18px;
-    }
-
-    .card-title {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 17px;
-    }
-
-    .card-title h2 {
-      margin: 0;
-      font-size: 17px;
-    }
-
-    .card-title small {
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    .room-layout {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
-    }
-
-    .field-label {
-      display: block;
-      margin: 0 0 7px;
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    .input-row {
-      display: flex;
-      gap: 8px;
-    }
-
-    input {
-      width: 100%;
-      min-width: 0;
-      color: var(--text);
-      border: 1px solid #303b5e;
-      border-radius: 12px;
-      outline: none;
-      padding: 13px 14px;
-      background: rgba(6, 10, 20, .72);
-    }
-
-    input:focus {
-      border-color: #7891ff;
-      box-shadow: 0 0 0 3px rgba(120, 145, 255, .13);
-    }
-
-    .room-input {
-      color: #9eb1ff;
-      font-weight: 800;
-      letter-spacing: 2px;
-      text-align: center;
-    }
-
-    .button-main {
-      padding: 12px 17px;
-      border-radius: 12px;
-      white-space: nowrap;
-      background: linear-gradient(135deg, var(--blue), var(--purple));
-      box-shadow: 0 8px 25px rgba(103, 134, 255, .2);
-    }
-
-    .button-secondary {
-      padding: 12px 17px;
-      border-radius: 12px;
-      white-space: nowrap;
-      background: #202a48;
-      border: 1px solid var(--border);
-    }
-
-    .button-danger {
-      padding: 12px 17px;
-      border-radius: 12px;
-      white-space: nowrap;
-      background: #392139;
-      border: 1px solid rgba(255, 93, 125, .35);
-    }
-
-    .status-line {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 15px;
-      color: #e9c768;
-      font-size: 13px;
-    }
-
-    .status-line::before {
-      content: "";
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: currentColor;
-    }
-
-    .content-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 18px;
-    }
-
-    .messages {
-      height: 280px;
-      overflow-y: auto;
-      padding: 13px;
-      border: 1px solid #222d4a;
-      border-radius: 15px;
-      background: rgba(5, 8, 16, .75);
-    }
-
-    .empty-message {
-      display: grid;
-      place-items: center;
-      height: 100%;
-      color: #697797;
-      font-size: 13px;
-      text-align: center;
-    }
-
-    .message {
-      width: fit-content;
-      max-width: 84%;
-      margin: 7px 0;
-      padding: 10px 13px;
-      color: #eef2ff;
-      line-height: 1.4;
-      border-radius: 13px 13px 13px 4px;
-      background: #192441;
-      word-break: break-word;
-    }
-
-    .message.mine {
-      margin-left: auto;
-      border-radius: 13px 13px 4px 13px;
-      background: linear-gradient(135deg, #536fd5, #774cb6);
-    }
-
-    .system-message {
-      margin: 10px 0;
-      color: #7786a8;
-      font-size: 12px;
-      text-align: center;
-    }
-
-    .message-input {
-      display: flex;
-      gap: 8px;
-      margin-top: 11px;
-    }
-
-    .message-input button {
-      width: 49px;
-      padding: 0;
-      font-size: 18px;
-    }
-
-    .file-zone {
-      display: grid;
-      place-items: center;
-      min-height: 280px;
-      padding: 25px;
-      text-align: center;
-      border: 1px dashed #536590;
+      padding: 20px 10px;
+      border: 1px solid rgba(255,255,255,.1);
       border-radius: 16px;
-      background: rgba(8, 13, 27, .45);
+      background: rgba(255,255,255,.06);
     }
 
-    .file-icon {
-      display: grid;
-      place-items: center;
-      width: 58px;
-      height: 58px;
-      margin: 0 auto 13px;
-      border-radius: 18px;
-      font-size: 25px;
-      background: linear-gradient(135deg, #4e6eea, #8552c9);
-    }
-
-    .file-zone p {
-      margin: 7px 0 15px;
-      color: var(--muted);
-      font-size: 13px;
-    }
-
-    .file-zone input {
-      max-width: 280px;
-      padding: 9px;
-      font-size: 12px;
-    }
-
-    .progress-text {
-      min-height: 20px;
-      margin-top: 13px;
-      color: #91aaff;
-      font-size: 12px;
-    }
-
-    .screen-card {
-      margin-top: 18px;
-    }
-
-    .screen-controls {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .video-wrap {
-      position: relative;
-      min-height: 130px;
-      margin-top: 14px;
-      overflow: hidden;
-      border-radius: 16px;
-      background: #05070c;
-      border: 1px solid #202a45;
-    }
-
-    video {
+    .card strong {
       display: block;
-      width: 100%;
-      max-height: 470px;
-      background: #05070c;
-    }
-
-    .video-placeholder {
-      display: grid;
-      place-items: center;
-      min-height: 130px;
-      color: #687797;
-      font-size: 13px;
-    }
-
-    .download-link {
-      display: inline-block;
-      margin-top: 10px;
-      color: #9bb0ff;
-      text-decoration: none;
-    }
-
-    .download-link:hover {
-      text-decoration: underline;
-    }
-
-    .footer {
-      margin-top: 20px;
-      color: #647292;
-      font-size: 12px;
-      text-align: center;
-    }
-
-    .permission-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 1000;
-      display: none;
-      place-items: center;
-      padding: 20px;
-      background: rgba(2, 4, 12, .72);
-      backdrop-filter: blur(8px);
-    }
-
-    .permission-overlay.visible {
-      display: grid;
-    }
-
-    .permission-modal {
-      width: min(430px, 100%);
-      padding: 26px;
-      border: 1px solid var(--border);
-      border-radius: 22px;
-      background: #12182a;
-      box-shadow: 0 25px 90px rgba(0, 0, 0, .55);
-      text-align: center;
-      animation: modalIn .2s ease;
-    }
-
-    @keyframes modalIn {
-      from {
-        opacity: 0;
-        transform: scale(.94) translateY(10px);
-      }
-
-      to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-      }
-    }
-
-    .permission-icon {
-      display: grid;
-      place-items: center;
-      width: 64px;
-      height: 64px;
-      margin: 0 auto 16px;
-      border-radius: 20px;
-      font-size: 30px;
-      background: linear-gradient(135deg, var(--blue), var(--purple));
-    }
-
-    .permission-modal h2 {
-      margin: 0 0 10px;
+      margin-bottom: 7px;
       font-size: 21px;
     }
 
-    .permission-modal p {
-      margin: 0;
-      color: var(--muted);
-      line-height: 1.5;
-      font-size: 14px;
+    .card span {
+      color: #969db5;
+      font-size: 12px;
     }
 
-    .permission-actions {
-      display: flex;
-      gap: 10px;
-      margin-top: 22px;
+    .button {
+      margin-top: 30px;
+      padding: 13px 24px;
+      border: none;
+      border-radius: 12px;
+      color: white;
+      font-size: 15px;
+      cursor: pointer;
+      background: #607ff0;
+      transition: .2s;
     }
 
-    .permission-actions button {
-      flex: 1;
+    .button:hover {
+      background: #7894ff;
+      transform: translateY(-2px);
     }
 
-    @media (max-width: 760px) {
-      .topbar {
-        align-items: flex-start;
+    @media (max-width: 750px) {
+      body {
+        padding: 10px;
       }
 
-      .connection-status {
-        font-size: 11px;
-      }
-
-      .hero {
-        grid-template-columns: 1fr;
-      }
-
-      .hero-card {
-        min-height: auto;
-      }
-
-      .feature-list {
-        padding: 0;
-      }
-
-      .room-layout,
-      .content-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .input-row {
+      .container {
         flex-direction: column;
       }
 
-      .input-row button {
+      .sidebar {
         width: 100%;
+        border-right: none;
+        border-bottom: 1px solid rgba(255,255,255,.1);
+      }
+
+      .content {
+        padding: 25px 15px;
+      }
+
+      .cards {
+        grid-template-columns: 1fr;
       }
     }
   </style>
 </head>
 
 <body>
-  <div class="permission-overlay" id="permissionOverlay">
-    <div class="permission-modal">
-      <div class="permission-icon">👤</div>
-      <h2>Запрос на подключение</h2>
-      <p id="permissionText">
-        Пользователь хочет подключиться к вашей комнате.
-      </p>
+  <div class="container">
 
-      <div class="permission-actions">
-        <button class="button-danger" id="rejectConnectionBtn">
-          Отклонить
-        </button>
+    <aside class="sidebar">
+      <div class="logo">Brawlf<span>Online</span></div>
 
-        <button class="button-main" id="acceptConnectionBtn">
-          Разрешить
+      <input
+        class="search"
+        type="text"
+        placeholder="Поиск пользователей..."
+        oninput="searchUsers(this.value)"
+      >
+
+      <div class="section-title">Пользователи онлайн</div>
+
+      <div id="usersList">
+        <div class="user active" onclick="showProfile('Alex', 'A', '2 часа 14 минут', 'blue')">
+          <div class="avatar">
+            A
+            <div class="online-dot"></div>
+          </div>
+          <div class="user-info">
+            <div class="username">Alex</div>
+            <div class="status">Онлайн · 2 ч. 14 мин.</div>
+          </div>
+        </div>
+
+        <div class="user" onclick="showProfile('Masha', 'M', '38 минут', 'green')">
+          <div class="avatar green">
+            M
+            <div class="online-dot"></div>
+          </div>
+          <div class="user-info">
+            <div class="username">Masha</div>
+            <div class="status">Онлайн · 38 мин.</div>
+          </div>
+        </div>
+
+        <div class="user" onclick="showProfile('Denis', 'D', '1 день назад', 'orange')">
+          <div class="avatar orange">
+            D
+            <div class="online-dot"></div>
+          </div>
+          <div class="user-info">
+            <div class="username">Denis</div>
+            <div class="status">Был онлайн 1 день назад</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="content">
+      <div class="profile">
+        <div id="bigAvatar" class="big-avatar">A</div>
+
+        <h1 id="profileName">Alex</h1>
+        <div id="profileStatus" class="online-text">● Сейчас онлайн</div>
+
+        <p class="description">
+          Добро пожаловать в мой профиль. Здесь можно будет видеть
+          друзей, их статус и время нахождения на сайте.
+        </p>
+
+        <div class="cards">
+          <div class="card">
+            <strong id="onlineTime">2 ч. 14 мин.</strong>
+            <span>В сети сейчас</span>
+          </div>
+
+          <div class="card">
+            <strong>24</strong>
+            <span>Друга</span>
+          </div>
+
+          <div class="card">
+            <strong>2026</strong>
+            <span>Регистрация</span>
+          </div>
+        </div>
+
+        <button class="button" onclick="alert('Функция сообщений появится после подключения базы данных')">
+          Написать сообщение
         </button>
       </div>
-    </div>
+    </main>
   </div>
 
-  <main class="app">
-    <header class="topbar">
-      <div class="brand">
-        <div class="brand-icon">✦</div>
-
-        <div>
-          <div class="brand-name">
-            Nova<span>Link</span>
-          </div>
-
-          <div class="brand-subtitle">
-            P2P File & Screen Sharing
-          </div>
-        </div>
-      </div>
-
-      <div class="connection-status" id="webrtcStatus">
-        <div class="status-dot"></div>
-        <span>Не связано</span>
-      </div>
-    </header>
-
-    <div class="hero">
-      <div class="hero-card">
-        <h1>Связь без<br>серверов.</h1>
-
-        <p>
-          NovaLink соединяет браузеры напрямую с помощью WebRTC.
-          Файлы, сообщения и экран передаются P2P, без сохранения на сервере.
-        </p>
-      </div>
-
-      <div class="card feature-list">
-        <div class="feature">
-          <div class="feature-icon">🔒</div>
-          <span>Полностью приватно</span>
-        </div>
-
-        <div class="feature">
-          <div class="feature-icon">⚡</div>
-          <span>Высокая скорость</span>
-        </div>
-
-        <div class="feature">
-          <div class="feature-icon">📁</div>
-          <span>Передача любых файлов</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="card room-card">
-      <div class="card-title">
-        <h2>Подключение</h2>
-        <small>Signaling Server нужен только для знакомства</small>
-      </div>
-
-      <div class="room-layout">
-        <div>
-          <span class="field-label">Моя комната</span>
-
-          <div class="input-row">
-            <input
-              type="text"
-              id="myRoom"
-              class="room-input"
-              readonly
-            >
-
-            <button
-              class="button-secondary"
-              id="copyRoomBtn"
-            >
-              📋 Копировать
-            </button>
-          </div>
-        </div>
-
-        <div>
-          <span class="field-label">Подключиться к комнате</span>
-
-          <div class="input-row">
-            <input
-              type="text"
-              id="remoteRoom"
-              class="room-input"
-              placeholder="XXXX"
-            >
-
-            <button
-              class="button-main"
-              id="connectButton"
-            >
-              Связать
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div class="status-line" id="statusLine">
-        Ожидание действий...
-      </div>
-    </div>
-
-    <div class="content-grid">
-      <div class="card">
-        <div class="card-title">
-          <h2>Сообщения</h2>
-        </div>
-
-        <div class="messages" id="chatMessages">
-          <div class="empty-message">
-            Нет сообщений.<br>
-            Свяжитесь для чата.
-          </div>
-        </div>
-
-        <div class="message-input">
-          <input
-            type="text"
-            id="chatInput"
-            placeholder="Напишите сообщение..."
-            disabled
-          >
-
-          <button
-            class="button-main"
-            id="sendBtn"
-            disabled
-          >
-            ✈️
-          </button>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">
-          <h2>Отправка файла</h2>
-        </div>
-
-        <div class="file-zone">
-          <div>
-            <div class="file-icon">🗂️</div>
-
-            <p>
-              Выберите файл для прямой передачи
-            </p>
-
-            <input
-              type="file"
-              id="fileInput"
-              disabled
-            >
-
-            <div
-              class="progress-text"
-              id="fileStatus"
-            ></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card screen-card">
-      <div class="card-title">
-        <h2>Демонстрация экрана</h2>
-
-        <small id="screenStatusLabel">
-          В ожидании
-        </small>
-      </div>
-
-      <div class="screen-controls">
-        <button
-          class="button-secondary"
-          id="shareScreenBtn"
-          disabled
-        >
-          ▶️ Начать трансляцию
-        </button>
-
-        <button
-          class="button-secondary"
-          id="stopScreenBtn"
-          style="display:none"
-        >
-          ⏹️ Остановить
-        </button>
-      </div>
-
-      <div class="video-wrap">
-        <div
-          class="video-placeholder"
-          id="videoPlaceholder"
-        >
-          Нет активной трансляции
-        </div>
-
-        <video
-          id="remoteVideo"
-          autoplay
-          playsinline
-          style="display:none;"
-        ></video>
-      </div>
-    </div>
-
-    <div class="footer">
-      NovaLink Project &middot; P2P WebRTC Demo
-    </div>
-  </main>
-
   <script>
-    const signalingUrl = "wss://nowalink-signaling.onrender.com";
+    function showProfile(name, letter, time, color) {
+      document.getElementById("profileName").textContent = name;
+      document.getElementById("bigAvatar").textContent = letter;
+      document.getElementById("onlineTime").textContent = time;
 
-    const stunServers = [
-      {
-        urls: "stun:stun.l.google.com:19302"
-      }
-    ];
+      const avatar = document.getElementById("bigAvatar");
+      avatar.className = "big-avatar";
 
-    const chunkSize = 16384;
-
-    const statusLine =
-      document.getElementById("statusLine");
-
-    const webrtcStatus =
-      document.getElementById("webrtcStatus");
-
-    const webrtcStatusText =
-      webrtcStatus.querySelector("span");
-
-    const webrtcStatusDot =
-      webrtcStatus.querySelector(".status-dot");
-
-    const myRoomInput =
-      document.getElementById("myRoom");
-
-    const copyRoomBtn =
-      document.getElementById("copyRoomBtn");
-
-    const remoteRoom =
-      document.getElementById("remoteRoom");
-
-    const connectButton =
-      document.getElementById("connectButton");
-
-    const chatMessages =
-      document.getElementById("chatMessages");
-
-    const chatInput =
-      document.getElementById("chatInput");
-
-    const sendBtn =
-      document.getElementById("sendBtn");
-
-    const fileInput =
-      document.getElementById("fileInput");
-
-    const fileStatus =
-      document.getElementById("fileStatus");
-
-    const shareScreenBtn =
-      document.getElementById("shareScreenBtn");
-
-    const stopScreenBtn =
-      document.getElementById("stopScreenBtn");
-
-    const remoteVideo =
-      document.getElementById("remoteVideo");
-
-    const videoPlaceholder =
-      document.getElementById("videoPlaceholder");
-
-    const screenStatusLabel =
-      document.getElementById("screenStatusLabel");
-
-    const permissionOverlay =
-      document.getElementById("permissionOverlay");
-
-    const permissionText =
-      document.getElementById("permissionText");
-
-    const acceptConnectionBtn =
-      document.getElementById("acceptConnectionBtn");
-
-    const rejectConnectionBtn =
-      document.getElementById("rejectConnectionBtn");
-
-    let socket = null;
-    let peer = null;
-    let dataChannel = null;
-
-    let room = Math.random()
-      .toString(36)
-      .substring(2, 6)
-      .toUpperCase();
-
-    let targetRoom = "";
-    let pendingRequestRoom = "";
-    let localStream = null;
-
-    let receivedFileBuffers = [];
-    let receivedFileSize = 0;
-    let expectedFileSize = 0;
-    let incomingFileName = "";
-    let incomingFileType = "";
-
-    myRoomInput.value = room;
-
-    function setStatus(message, isError = false) {
-      statusLine.textContent = message;
-
-      statusLine.style.color = isError
-        ? "var(--red)"
-        : "#e9c768";
-    }
-
-    function updateConnectionUI(connected) {
-      if (connected) {
-        webrtcStatusDot.classList.add("online");
-        webrtcStatusText.textContent = "Связано (P2P)";
-
-        chatInput.disabled = false;
-        sendBtn.disabled = false;
-        fileInput.disabled = false;
-        shareScreenBtn.disabled = false;
-
-        setStatus("P2P соединение установлено");
-
-        chatMessages.innerHTML =
-          '<div class="system-message">' +
-          "Успешное P2P подключение!" +
-          "</div>";
-
-        return;
+      if (color === "green") {
+        avatar.style.background = "linear-gradient(135deg, #11998e, #38ef7d)";
       }
 
-      webrtcStatusDot.classList.remove("online");
-      webrtcStatusText.textContent = "Не связано";
-
-      chatInput.disabled = true;
-      sendBtn.disabled = true;
-      fileInput.disabled = true;
-      shareScreenBtn.disabled = true;
-
-      stopScreenBtn.style.display = "none";
-      shareScreenBtn.style.display = "inline-block";
-
-      remoteVideo.style.display = "none";
-      videoPlaceholder.style.display = "grid";
-
-      screenStatusLabel.textContent = "В ожидании";
-
-      if (localStream) {
-        localStream.getTracks().forEach(track => {
-          track.stop();
-        });
-
-        localStream = null;
-      }
-    }
-
-    function appendMessage(text, isMine = false) {
-      const emptyMessage =
-        chatMessages.querySelector(".empty-message");
-
-      if (emptyMessage) {
-        emptyMessage.remove();
+      if (color === "orange") {
+        avatar.style.background = "linear-gradient(135deg, #f7971e, #ffd200)";
       }
 
-      const element =
-        document.createElement("div");
-
-      element.className =
-        "message" + (isMine ? " mine" : "");
-
-      element.textContent = text;
-
-      chatMessages.appendChild(element);
-      chatMessages.scrollTop =
-        chatMessages.scrollHeight;
-    }
-
-    function showPermissionRequest(requestRoom) {
-      pendingRequestRoom = requestRoom;
-
-      permissionText.textContent =
-        "Пользователь из комнаты " +
-        requestRoom +
-        " хочет подключиться к вам.";
-
-      permissionOverlay.classList.add("visible");
-    }
-
-    function hidePermissionRequest() {
-      permissionOverlay.classList.remove("visible");
-    }
-
-    function sendSocketMessage(message) {
-      if (
-        socket &&
-        socket.readyState === WebSocket.OPEN
-      ) {
-        socket.send(JSON.stringify(message));
-        return true;
+      if (color === "blue") {
+        avatar.style.background = "linear-gradient(135deg, #667eea, #764ba2)";
       }
 
-      return false;
-    }
-
-    function closeCurrentSocket() {
-      if (!socket) {
-        return;
-      }
-
-      socket.onclose = null;
-
-      if (
-        socket.readyState === WebSocket.OPEN ||
-        socket.readyState === WebSocket.CONNECTING
-      ) {
-        socket.close();
-      }
-
-      socket = null;
-    }
-
-    function connectSocket(joinRoom) {
-      return new Promise((resolve, reject) => {
-        closeCurrentSocket();
-
-        socket = new WebSocket(signalingUrl);
-
-        let joined = false;
-
-        socket.onopen = () => {
-          sendSocketMessage({
-            type: "join",
-            room: joinRoom
-          });
-        };
-
-        socket.onmessage = async event => {
-          let message;
-
-          try {
-            message = JSON.parse(event.data);
-          } catch {
-            return;
-          }
-
-          if (message.type === "joined") {
-            if (!joined) {
-              joined = true;
-              resolve();
-            }
-
-            if (joinRoom === room) {
-              setStatus(
-                "Ожидание подключения к комнате " + room
-              );
-            }
-
-            return;
-          }
-
-          if (message.type === "error") {
-            setStatus(message.message, true);
-
-            if (!joined) {
-              joined = true;
-              reject(new Error(message.message));
-            }
-
-            return;
-          }
-
-          if (message.type === "connection-request") {
-            const requesterRoom =
-              message.from || "неизвестной комнаты";
-
-            showPermissionRequest(requesterRoom);
-            return;
-          }
-
-          if (message.type === "connection-accepted") {
-            setStatus(
-              "Подключение разрешено. Установка P2P соединения..."
-            );
-
-            if (!peer) {
-              createPeer(true);
-            }
-
-            return;
-          }
-
-          if (message.type === "connection-rejected") {
-            setStatus(
-              "Пользователь отклонил подключение",
-              true
-            );
-
-            connectButton.disabled = false;
-            return;
-          }
-
-          if (message.type === "offer") {
-            if (!peer) {
-              createPeer(false);
-            }
-
-            await peer.setRemoteDescription(
-              new RTCSessionDescription(message.sdp)
-            );
-
-            const answer =
-              await peer.createAnswer();
-
-            await peer.setLocalDescription(answer);
-
-            sendSocketMessage({
-              type: "answer",
-              sdp: peer.localDescription,
-              room: room
-            });
-
-            return;
-          }
-
-          if (message.type === "answer") {
-            if (!peer) {
-              return;
-            }
-
-            await peer.setRemoteDescription(
-              new RTCSessionDescription(message.sdp)
-            );
-
-            return;
-          }
-
-          if (message.type === "ice") {
-            if (!peer || !message.candidate) {
-              return;
-            }
-
-            try {
-              await peer.addIceCandidate(
-                new RTCIceCandidate(message.candidate)
-              );
-            } catch (error) {
-              console.error(
-                "Ошибка ICE-кандидата:",
-                error
-              );
-            }
-
-            return;
-          }
-
-          if (message.type === "peer-left") {
-            updateConnectionUI(false);
-            setStatus("Пользователь отключился");
-          }
-        };
-
-        socket.onerror = () => {
-          setStatus(
-            "Ошибка подключения к Signaling Server",
-            true
-          );
-
-          if (!joined) {
-            joined = true;
-            reject(new Error("Ошибка WebSocket"));
-          }
-        };
-
-        socket.onclose = () => {
-          if (!joined) {
-            joined = true;
-            reject(
-              new Error("Signaling Server отключён")
-            );
-          }
-        };
-      });
-    }
-
-    function createPeer(isInitiator) {
-      peer = new RTCPeerConnection({
-        iceServers: stunServers
+      document.querySelectorAll(".user").forEach(user => {
+        user.classList.remove("active");
       });
 
-      peer.onicecandidate = event => {
-        if (!event.candidate) {
-          return;
-        }
-
-        sendSocketMessage({
-          type: "ice",
-          candidate: event.candidate,
-          room: targetRoom || room
-        });
-      };
-
-      peer.onconnectionstatechange = () => {
-        if (
-          peer.connectionState === "failed" ||
-          peer.connectionState === "disconnected" ||
-          peer.connectionState === "closed"
-        ) {
-          updateConnectionUI(false);
-        }
-      };
-
-      peer.ontrack = event => {
-        videoPlaceholder.style.display = "none";
-        remoteVideo.style.display = "block";
-        remoteVideo.srcObject = event.streams[0];
-        screenStatusLabel.textContent =
-          "Смотрим трансляцию";
-      };
-
-      if (isInitiator) {
-        dataChannel =
-          peer.createDataChannel("chat");
-
-        setupDataChannel();
-
-        peer.createOffer()
-          .then(offer => {
-            return peer.setLocalDescription(offer);
-          })
-          .then(() => {
-            sendSocketMessage({
-              type: "offer",
-              sdp: peer.localDescription,
-              room: targetRoom
-            });
-          })
-          .catch(error => {
-            console.error(
-              "Ошибка создания offer:",
-              error
-            );
-
-            setStatus(
-              "Не удалось создать подключение",
-              true
-            );
-          });
-      } else {
-        peer.ondatachannel = event => {
-          dataChannel = event.channel;
-          setupDataChannel();
-        };
-      }
+      event.currentTarget.classList.add("active");
     }
 
-    function setupDataChannel() {
-      if (!dataChannel) {
-        return;
-      }
+    function searchUsers(value) {
+      value = value.toLowerCase();
 
-      dataChannel.binaryType = "arraybuffer";
-
-      dataChannel.onopen = () => {
-        updateConnectionUI(true);
-      };
-
-      dataChannel.onclose = () => {
-        updateConnectionUI(false);
-        setStatus("P2P соединение разорвано");
-        appendMessage(
-          "Система: партнёр отключился.",
-          false
-        );
-      };
-
-      dataChannel.onerror = error => {
-        console.error(
-          "Ошибка DataChannel:",
-          error
-        );
-      };
-
-      dataChannel.onmessage = event => {
-        if (typeof event.data === "string") {
-          try {
-            const data = JSON.parse(event.data);
-
-            if (data.type === "chat") {
-              appendMessage(data.text, false);
-            }
-
-            if (data.type === "file-start") {
-              expectedFileSize = data.size;
-              incomingFileName = data.name;
-              incomingFileType =
-                data.mime || "application/octet-stream";
-
-              receivedFileBuffers = [];
-              receivedFileSize = 0;
-
-              fileStatus.textContent =
-                "Приём файла: " +
-                incomingFileName +
-                "...";
-            }
-
-            if (data.type === "file-end") {
-              fileStatus.textContent =
-                "Файл получен: " +
-                incomingFileName;
-
-              saveReceivedFile();
-            }
-          } catch {
-            console.log(
-              "Получена неизвестная строка"
-            );
-          }
-
-          return;
-        }
-
-        receivedFileBuffers.push(event.data);
-        receivedFileSize += event.data.byteLength;
-
-        const percent = expectedFileSize
-          ? (
-              receivedFileSize /
-              expectedFileSize *
-              100
-            ).toFixed(1)
-          : 0;
-
-        fileStatus.textContent =
-          "Приём: " + percent + "%";
-      };
-    }
-
-    function saveReceivedFile() {
-      const blob = new Blob(
-        receivedFileBuffers,
-        {
-          type: incomingFileType
-        }
-      );
-
-      const url =
-        URL.createObjectURL(blob);
-
-      const link =
-        document.createElement("a");
-
-      link.href = url;
-      link.download = incomingFileName;
-      link.className = "download-link";
-      link.textContent =
-        "💾 Скачать: " + incomingFileName;
-
-      const emptyMessage =
-        chatMessages.querySelector(".empty-message");
-
-      if (emptyMessage) {
-        emptyMessage.remove();
-      }
-
-      const element =
-        document.createElement("div");
-
-      element.className = "message";
-      element.appendChild(link);
-
-      chatMessages.appendChild(element);
-      chatMessages.scrollTop =
-        chatMessages.scrollHeight;
-    }
-
-    function sendChatMessage() {
-      const text = chatInput.value.trim();
-
-      if (
-        !text ||
-        !dataChannel ||
-        dataChannel.readyState !== "open"
-      ) {
-        return;
-      }
-
-      dataChannel.send(
-        JSON.stringify({
-          type: "chat",
-          text: text
-        })
-      );
-
-      appendMessage(text, true);
-      chatInput.value = "";
-    }
-
-    async function sendFile(file) {
-      if (
-        !dataChannel ||
-        dataChannel.readyState !== "open"
-      ) {
-        return;
-      }
-
-      dataChannel.send(
-        JSON.stringify({
-          type: "file-start",
-          name: file.name,
-          size: file.size,
-          mime: file.type
-        })
-      );
-
-      const arrayBuffer =
-        await file.arrayBuffer();
-
-      let offset = 0;
-
-      dataChannel.bufferedAmountLowThreshold =
-        65536;
-
-      const sendChunk = () => {
-        while (
-          offset < arrayBuffer.byteLength
-        ) {
-          if (
-            dataChannel.bufferedAmount >
-            dataChannel.bufferedAmountLowThreshold
-          ) {
-            dataChannel.onbufferedamountlow =
-              () => {
-                dataChannel.onbufferedamountlow =
-                  null;
-
-                sendChunk();
-              };
-
-            return;
-          }
-
-          const end = Math.min(
-            offset + chunkSize,
-            arrayBuffer.byteLength
-          );
-
-          const chunk =
-            arrayBuffer.slice(offset, end);
-
-          dataChannel.send(chunk);
-          offset = end;
-
-          const percent =
-            (
-              offset /
-              arrayBuffer.byteLength *
-              100
-            ).toFixed(1);
-
-          fileStatus.textContent =
-            "Отправка: " +
-            Math.min(percent, 100) +
-            "%";
-        }
-
-        dataChannel.send(
-          JSON.stringify({
-            type: "file-end"
-          })
-        );
-
-        fileStatus.textContent =
-          "Файл успешно отправлен!";
-
-        appendMessage(
-          "📎 Отправлен файл: " + file.name,
-          true
-        );
-      };
-
-      sendChunk();
-    }
-
-    async function startScreenShare() {
-      if (!peer) {
-        return;
-      }
-
-      try {
-        localStream =
-          await navigator.mediaDevices.getDisplayMedia({
-            video: true,
-            audio: true
-          });
-
-        localStream.getTracks().forEach(track => {
-          peer.addTrack(track, localStream);
-          track.onended = stopScreenShare;
-        });
-
-        const offer =
-          await peer.createOffer();
-
-        await peer.setLocalDescription(offer);
-
-        sendSocketMessage({
-          type: "offer",
-          sdp: peer.localDescription,
-          room: targetRoom || room
-        });
-
-        shareScreenBtn.style.display = "none";
-        stopScreenBtn.style.display = "inline-block";
-        screenStatusLabel.textContent =
-          "Транслируем экран";
-      } catch (error) {
-        console.error(error);
-
-        screenStatusLabel.textContent =
-          "Доступ к экрану запрещён";
-      }
-    }
-
-    async function stopScreenShare() {
-      if (localStream) {
-        localStream.getTracks().forEach(track => {
-          track.stop();
-        });
-
-        localStream = null;
-      }
-
-      shareScreenBtn.style.display =
-        "inline-block";
-
-      stopScreenBtn.style.display =
-        "none";
-
-      screenStatusLabel.textContent =
-        "В ожидании";
-
-      if (!peer) {
-        return;
-      }
-
-      peer.getSenders().forEach(sender => {
-        if (sender.track) {
-          peer.removeTrack(sender);
-        }
-      });
-
-      const offer =
-        await peer.createOffer();
-
-      await peer.setLocalDescription(offer);
-
-      sendSocketMessage({
-        type: "offer",
-        sdp: peer.localDescription,
-        room: targetRoom || room
+      document.querySelectorAll(".user").forEach(user => {
+        const username = user.querySelector(".username").textContent.toLowerCase();
+        user.style.display = username.includes(value) ? "flex" : "none";
       });
     }
-
-    copyRoomBtn.addEventListener(
-      "click",
-      async () => {
-        try {
-          await navigator.clipboard.writeText(room);
-
-          const originalText =
-            copyRoomBtn.textContent;
-
-          copyRoomBtn.textContent =
-            "✓ Скопировано";
-
-          setTimeout(() => {
-            copyRoomBtn.textContent =
-              originalText;
-          }, 2000);
-        } catch {
-          myRoomInput.select();
-          document.execCommand("copy");
-        }
-      }
-    );
-
-    connectButton.addEventListener(
-      "click",
-      async () => {
-        const requestedRoom =
-          remoteRoom.value.trim().toUpperCase();
-
-        if (!requestedRoom) {
-          alert("Введи код комнаты.");
-          return;
-        }
-
-        if (requestedRoom === room) {
-          alert(
-            "Нельзя подключиться к собственной комнате."
-          );
-          return;
-        }
-
-        connectButton.disabled = true;
-        targetRoom = requestedRoom;
-
-        if (peer) {
-          peer.close();
-          peer = null;
-          dataChannel = null;
-        }
-
-        setStatus("Подключение к комнате...");
-
-        try {
-          await connectSocket(targetRoom);
-
-          sendSocketMessage({
-            type: "connection-request",
-            room: targetRoom,
-            from: room
-          });
-
-          setStatus(
-            "Запрос отправлен. Ожидание разрешения..."
-          );
-        } catch (error) {
-          console.error(error);
-
-          connectButton.disabled = false;
-
-          setStatus(
-            "Не удалось подключиться к комнате",
-            true
-          );
-        }
-      }
-    );
-
-    acceptConnectionBtn.addEventListener(
-      "click",
-      () => {
-        if (!pendingRequestRoom) {
-          return;
-        }
-
-        targetRoom = pendingRequestRoom;
-
-        sendSocketMessage({
-          type: "connection-accepted",
-          room: pendingRequestRoom,
-          from: room
-        });
-
-        hidePermissionRequest();
-
-        setStatus(
-          "Подключение разрешено. Ожидание WebRTC..."
-        );
-
-        pendingRequestRoom = "";
-      }
-    );
-
-    rejectConnectionBtn.addEventListener(
-      "click",
-      () => {
-        if (!pendingRequestRoom) {
-          return;
-        }
-
-        sendSocketMessage({
-          type: "connection-rejected",
-          room: pendingRequestRoom,
-          from: room
-        });
-
-        hidePermissionRequest();
-
-        setStatus(
-          "Запрос на подключение отклонён",
-          true
-        );
-
-        pendingRequestRoom = "";
-      }
-    );
-
-    sendBtn.addEventListener(
-      "click",
-      sendChatMessage
-    );
-
-    chatInput.addEventListener(
-      "keypress",
-      event => {
-        if (event.key === "Enter") {
-          sendChatMessage();
-        }
-      }
-    );
-
-    fileInput.addEventListener(
-      "change",
-      event => {
-        const file = event.target.files[0];
-
-        if (file) {
-          sendFile(file);
-          fileInput.value = "";
-        }
-      }
-    );
-
-    shareScreenBtn.addEventListener(
-      "click",
-      startScreenShare
-    );
-
-    stopScreenBtn.addEventListener(
-      "click",
-      stopScreenShare
-    );
-
-    connectSocket(room)
-      .catch(error => {
-        console.error(error);
-
-        setStatus(
-          "Signaling Server недоступен",
-          true
-        );
-      });
   </script>
 </body>
 </html>
