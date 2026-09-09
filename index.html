@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Online Friends</title>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <style>
     * {
       box-sizing: border-box;
@@ -230,6 +232,12 @@
       transform: translateY(-2px);
     }
 
+    .empty-state {
+      padding: 20px 13px;
+      color: #8990a8;
+      font-size: 13px;
+    }
+
     @media (max-width: 750px) {
       body {
         padding: 10px;
@@ -269,74 +277,43 @@
         oninput="searchUsers(this.value)"
       >
 
-      <div class="section-title">Пользователи онлайн</div>
+      <div class="section-title">Пользователи</div>
 
       <div id="usersList">
-        <div class="user active" onclick="showProfile('Alex', 'A', '2 часа 14 минут', 'blue')">
-          <div class="avatar">
-            A
-            <div class="online-dot"></div>
-          </div>
-          <div class="user-info">
-            <div class="username">Alex</div>
-            <div class="status">Онлайн · 2 ч. 14 мин.</div>
-          </div>
-        </div>
-
-        <div class="user" onclick="showProfile('Masha', 'M', '38 минут', 'green')">
-          <div class="avatar green">
-            M
-            <div class="online-dot"></div>
-          </div>
-          <div class="user-info">
-            <div class="username">Masha</div>
-            <div class="status">Онлайн · 38 мин.</div>
-          </div>
-        </div>
-
-        <div class="user" onclick="showProfile('Denis', 'D', '1 день назад', 'orange')">
-          <div class="avatar orange">
-            D
-            <div class="online-dot"></div>
-          </div>
-          <div class="user-info">
-            <div class="username">Denis</div>
-            <div class="status">Был онлайн 1 день назад</div>
-          </div>
-        </div>
+        <div class="empty-state">Загрузка...</div>
       </div>
     </aside>
 
     <main class="content">
       <div class="profile">
-        <div id="bigAvatar" class="big-avatar">A</div>
+        <div id="bigAvatar" class="big-avatar">?</div>
 
-        <h1 id="profileName">Alex</h1>
-        <div id="profileStatus" class="online-text">● Сейчас онлайн</div>
+        <h1 id="profileName">Выбери пользователя</h1>
+        <div id="profileStatus" class="online-text">—</div>
 
         <p class="description">
-          Добро пожаловать в мой профиль. Здесь можно будет видеть
-          друзей, их статус и время нахождения на сайте.
+          Добро пожаловать. Здесь видно, кто сейчас на сайте, и когда
+          пользователь заходил в последний раз.
         </p>
 
         <div class="cards">
           <div class="card">
-            <strong id="onlineTime">2 ч. 14 мин.</strong>
-            <span>В сети сейчас</span>
+            <strong id="onlineTime">—</strong>
+            <span>Статус</span>
           </div>
 
           <div class="card">
-            <strong>24</strong>
-            <span>Друга</span>
+            <strong id="totalUsers">0</strong>
+            <span>Всего видели</span>
           </div>
 
           <div class="card">
-            <strong>2026</strong>
+            <strong id="regYear">2026</strong>
             <span>Регистрация</span>
           </div>
         </div>
 
-        <button class="button" onclick="alert('Функция сообщений появится после подключения базы данных')">
+        <button class="button" onclick="alert('Функция сообщений появится позже')">
           Написать сообщение
         </button>
       </div>
@@ -344,41 +321,154 @@
   </div>
 
   <script>
-    function showProfile(name, letter, time, color) {
-      document.getElementById("profileName").textContent = name;
-      document.getElementById("bigAvatar").textContent = letter;
-      document.getElementById("onlineTime").textContent = time;
+    // ====== НАСТРОЙКИ SUPABASE ======
+    const SUPABASE_URL = "https://vzbgaldclnsedbjjvykq.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_R-bKrL5gZp0IsMRYgYKZSw_zD9EbHqx";
+    // =================================
 
-      const avatar = document.getElementById("bigAvatar");
-      avatar.className = "big-avatar";
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-      if (color === "green") {
-        avatar.style.background = "linear-gradient(135deg, #11998e, #38ef7d)";
+    // уникальный id для этой вкладки/устройства, живёт в localStorage
+    function getMyId() {
+      let id = localStorage.getItem("presence_id");
+      if (!id) {
+        id = "user_" + Math.random().toString(36).slice(2, 10);
+        localStorage.setItem("presence_id", id);
       }
+      return id;
+    }
 
-      if (color === "orange") {
-        avatar.style.background = "linear-gradient(135deg, #f7971e, #ffd200)";
+    function getMyName() {
+      let name = localStorage.getItem("presence_name");
+      if (!name) {
+        name = "Гость" + Math.floor(Math.random() * 1000);
+        localStorage.setItem("presence_name", name);
       }
+      return name;
+    }
 
-      if (color === "blue") {
-        avatar.style.background = "linear-gradient(135deg, #667eea, #764ba2)";
-      }
+    const myId = getMyId();
+    const myName = getMyName();
 
-      document.querySelectorAll(".user").forEach(user => {
-        user.classList.remove("active");
+    let usersCache = {};
+    let selectedId = null;
+
+    const colors = ["", "green", "orange"];
+    function colorFor(id) {
+      let hash = 0;
+      for (const ch of id) hash = (hash * 31 + ch.charCodeAt(0)) % 1000;
+      return colors[hash % colors.length];
+    }
+
+    function timeAgo(dateStr) {
+      const diffMs = Date.now() - new Date(dateStr).getTime();
+      const sec = Math.floor(diffMs / 1000);
+      if (sec < 60) return "только что";
+      const min = Math.floor(sec / 60);
+      if (min < 60) return min + " мин.";
+      const hrs = Math.floor(min / 60);
+      if (hrs < 24) return hrs + " ч. " + (min % 60) + " мин.";
+      const days = Math.floor(hrs / 24);
+      return days + " дн. назад";
+    }
+
+    function isOnline(lastSeen) {
+      return (Date.now() - new Date(lastSeen).getTime()) < 20000; // 20 сек без пинга = офлайн
+    }
+
+    async function upsertMyPresence() {
+      await supabaseClient.from("presence").upsert({
+        id: myId,
+        name: myName,
+        last_seen: new Date().toISOString()
       });
+    }
 
-      event.currentTarget.classList.add("active");
+    async function loadUsers() {
+      const { data, error } = await supabaseClient.from("presence").select("*");
+      if (error) {
+        document.getElementById("usersList").innerHTML =
+          '<div class="empty-state">Ошибка подключения: ' + error.message + '</div>';
+        return;
+      }
+      usersCache = {};
+      data.forEach(u => usersCache[u.id] = u);
+      renderUsers();
+      if (selectedId && usersCache[selectedId]) {
+        renderProfile(usersCache[selectedId]);
+      } else {
+        renderProfile(usersCache[myId]);
+        selectedId = myId;
+      }
+    }
+
+    function renderUsers(filter = "") {
+      const list = document.getElementById("usersList");
+      const users = Object.values(usersCache)
+        .filter(u => u.name.toLowerCase().includes(filter.toLowerCase()))
+        .sort((a, b) => new Date(b.last_seen) - new Date(a.last_seen));
+
+      document.getElementById("totalUsers").textContent = Object.keys(usersCache).length;
+
+      if (users.length === 0) {
+        list.innerHTML = '<div class="empty-state">Никого не найдено</div>';
+        return;
+      }
+
+      list.innerHTML = users.map(u => {
+        const online = isOnline(u.last_seen);
+        const color = colorFor(u.id);
+        return `
+          <div class="user ${u.id === selectedId ? 'active' : ''} ${online ? '' : 'offline'}" onclick="selectUser('${u.id}')">
+            <div class="avatar ${color}">
+              ${u.name.charAt(0).toUpperCase()}
+              <div class="online-dot"></div>
+            </div>
+            <div class="user-info">
+              <div class="username">${u.name}${u.id === myId ? ' (ты)' : ''}</div>
+              <div class="status">${online ? 'Онлайн' : 'Был(а) ' + timeAgo(u.last_seen)}</div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderProfile(u) {
+      if (!u) return;
+      const online = isOnline(u.last_seen);
+      const color = colorFor(u.id);
+
+      document.getElementById("profileName").textContent = u.name + (u.id === myId ? " (ты)" : "");
+      document.getElementById("bigAvatar").textContent = u.name.charAt(0).toUpperCase();
+      document.getElementById("bigAvatar").className = "big-avatar " + color;
+      document.getElementById("profileStatus").textContent = online ? "● Сейчас онлайн" : "○ Не в сети";
+      document.getElementById("profileStatus").style.color = online ? "#48e58a" : "#8990a8";
+      document.getElementById("onlineTime").textContent = online ? "Онлайн" : timeAgo(u.last_seen);
+    }
+
+    function selectUser(id) {
+      selectedId = id;
+      renderProfile(usersCache[id]);
+      renderUsers(document.querySelector(".search").value);
     }
 
     function searchUsers(value) {
-      value = value.toLowerCase();
-
-      document.querySelectorAll(".user").forEach(user => {
-        const username = user.querySelector(".username").textContent.toLowerCase();
-        user.style.display = username.includes(value) ? "flex" : "none";
-      });
+      renderUsers(value);
     }
+
+    // первый заход + пинг каждые 8 сек чтобы показывать "онлайн"
+    upsertMyPresence();
+    setInterval(upsertMyPresence, 8000);
+
+    // подписка на realtime изменения у всех пользователей
+    supabaseClient
+      .channel("presence-changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "presence" }, loadUsers)
+      .subscribe();
+
+    loadUsers();
+    // обновляем текст "N мин назад" каждую минуту даже без новых событий
+    setInterval(() => { renderUsers(document.querySelector(".search").value); if(selectedId) renderProfile(usersCache[selectedId]); }, 30000);
   </script>
 </body>
 </html>
