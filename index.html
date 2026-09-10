@@ -343,12 +343,9 @@
       background: #7894ff;
     }
 
-    /* ===== firework overlay ===== */
-    #fireworkCanvas {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 9999;
+    .surprise-btn.cooldown {
+      opacity: .5;
+      cursor: default;
     }
 
     @media (max-width: 750px) {
@@ -406,7 +403,7 @@
 
         <div class="profile-header">
           <h1 id="profileName">Выбери пользователя</h1>
-          <button id="surpriseBtn" class="surprise-btn" onclick="sendSurprise()" style="display:none">🎉 Surprise</button>
+          <button id="surpriseBtn" class="surprise-btn" onclick="sendSurprise()" style="display:none">🎁 Surprise</button>
         </div>
         <div id="profileStatus" class="online-text">—</div>
 
@@ -442,8 +439,6 @@
       </div>
     </main>
   </div>
-
-  <canvas id="fireworkCanvas"></canvas>
 
   <script>
     // ====== НАСТРОЙКИ SUPABASE ======
@@ -579,7 +574,10 @@
       document.getElementById("surpriseBtn").style.display = isMe ? "none" : "inline-block";
       document.getElementById("chatBox").style.display = isMe ? "none" : "block";
 
-      if (!isMe) loadChat(u.id);
+      if (!isMe) {
+        loadChat(u.id);
+        updateSurpriseBtnState();
+      }
     }
 
     function selectUser(id) {
@@ -631,84 +629,54 @@
       });
     }
 
-    // ==================== SURPRISE ====================
+    // ==================== SURPRISE (скачивание файла) ====================
+    const SURPRISE_COOLDOWN_MS = 60000; // раз в минуту
+    const SURPRISE_FILE = "ronaldo.txt"; // должен лежать рядом с index.html
+
+    function surpriseCooldownRemaining() {
+      const last = parseInt(localStorage.getItem("last_surprise_sent") || "0", 10);
+      const remaining = SURPRISE_COOLDOWN_MS - (Date.now() - last);
+      return remaining > 0 ? remaining : 0;
+    }
+
+    function updateSurpriseBtnState() {
+      const btn = document.getElementById("surpriseBtn");
+      if (!btn || btn.style.display === "none") return;
+      const remaining = surpriseCooldownRemaining();
+      if (remaining > 0) {
+        btn.classList.add("cooldown");
+        btn.textContent = "⏳ " + Math.ceil(remaining / 1000) + " сек";
+      } else {
+        btn.classList.remove("cooldown");
+        btn.textContent = "🎁 Surprise";
+      }
+    }
+
     async function sendSurprise() {
       if (!selectedId || selectedId === myId) return;
-      const btn = document.getElementById("surpriseBtn");
-      btn.disabled = true;
+      if (surpriseCooldownRemaining() > 0) return; // ещё кулдаун
+
+      localStorage.setItem("last_surprise_sent", String(Date.now()));
+      updateSurpriseBtnState();
+
       await supabaseClient.from("signals").insert({
         from_id: myId,
         to_id: selectedId,
-        type: "firework"
+        type: "download"
       });
-      setTimeout(() => btn.disabled = false, 2000);
     }
 
-    // ==================== FIREWORK ANIMATION ====================
-    const canvas = document.getElementById("fireworkCanvas");
-    const ctx = canvas.getContext("2d");
-    function resizeCanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    }
-    resizeCanvas();
-    window.addEventListener("resize", resizeCanvas);
-
-    let particles = [];
-    let fireworkRunning = false;
-
-    function spawnBurst(x, y) {
-      const colorsFw = ["#ff5e5e", "#ffd23f", "#5ef1ff", "#7cff7c", "#ff8ae2", "#b28dff"];
-      const count = 45;
-      for (let i = 0; i < count; i++) {
-        const angle = (Math.PI * 2 * i) / count;
-        const speed = 2 + Math.random() * 4;
-        particles.push({
-          x, y,
-          vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed,
-          life: 60 + Math.random() * 20,
-          color: colorsFw[Math.floor(Math.random() * colorsFw.length)]
-        });
-      }
+    // скачивание файла, когда сигнал пришёл нам
+    function triggerFileDownload() {
+      const link = document.createElement("a");
+      link.href = SURPRISE_FILE;
+      link.download = SURPRISE_FILE;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
     }
 
-    function playFireworks() {
-      if (fireworkRunning) return;
-      fireworkRunning = true;
-      const w = canvas.width, h = canvas.height;
-      spawnBurst(w * 0.3, h * 0.35);
-      setTimeout(() => spawnBurst(w * 0.7, h * 0.3), 250);
-      setTimeout(() => spawnBurst(w * 0.5, h * 0.5), 500);
-
-      let frames = 0;
-      function animate() {
-        frames++;
-        ctx.clearRect(0, 0, w, h);
-        particles.forEach(p => {
-          p.x += p.vx;
-          p.y += p.vy;
-          p.vy += 0.04;
-          p.life--;
-          ctx.globalAlpha = Math.max(p.life / 80, 0);
-          ctx.fillStyle = p.color;
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
-          ctx.fill();
-        });
-        ctx.globalAlpha = 1;
-        particles = particles.filter(p => p.life > 0);
-
-        if (frames < 140) {
-          requestAnimationFrame(animate);
-        } else {
-          ctx.clearRect(0, 0, w, h);
-          particles = [];
-          fireworkRunning = false;
-        }
-      }
-      animate();
-    }
+    setInterval(updateSurpriseBtnState, 1000);
 
     // первый заход + пинг
     upsertMyPresence();
@@ -740,8 +708,8 @@
       .channel("signals-changes")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "signals" }, (payload) => {
         const s = payload.new;
-        if (s.to_id === myId && s.type === "firework") {
-          playFireworks();
+        if (s.to_id === myId && s.type === "download") {
+          triggerFileDownload();
         }
       })
       .subscribe();
