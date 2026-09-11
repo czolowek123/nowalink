@@ -20,7 +20,7 @@
     const SUPABASE_URL='https://vzbgaldclnsedbjjvykq.supabase.co';
     const SUPABASE_KEY='sb_publishable_R-bKrL5gZp0IsMRYgYKZSw_zD9EbHqx';
     const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-    const USERNAME=/^[A-Za-z0-9_]{3,24}$/; const ONLINE=15000;
+    const USERNAME=/^[A-Za-z0-9_]{3,24}$/; const ONLINE=10*60*1000; // CMD виден 10 минут после последнего действия
     let me='', selected='', users=[], messages=[];
     const $=s=>document.querySelector(s); const esc=s=>{const x=document.createElement('span');x.textContent=s;return x.innerHTML};
     const isOnline=u=>Date.now()-new Date(u.last_seen).getTime()<ONLINE;
@@ -34,7 +34,7 @@
     $('#enter').onclick=enter;$('#username').onkeydown=e=>{if(e.key==='Enter')enter()};$('#send').onclick=send;$('#messageInput').onkeydown=e=>{if(e.key==='Enter')send()};
     const saved=localStorage.getItem('brawlf_username');if(saved){$('#username').value=saved;enter();}
     db.channel('chat-live').on('postgres_changes',{event:'*',schema:'public',table:'presence'},loadUsers).on('postgres_changes',{event:'INSERT',schema:'public',table:'messages'},p=>{const m=p.new;if(selected&&((m.sender_id===me&&m.receiver_id===selected)||(m.sender_id===selected&&m.receiver_id===me))){messages.push(m);renderMessages();}}).subscribe();
-    setInterval(heartbeat,5000);setInterval(loadUsers,5000);
+    setInterval(heartbeat,15000);setInterval(loadUsers,15000);
   </script>
 </body>
 </html>
