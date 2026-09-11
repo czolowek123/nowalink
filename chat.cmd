@@ -1,4 +1,3 @@
-@echo off
-chcp 65001 >nul
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0chat.ps1"
-pause
+@powershell -nop -ep bypass -f "%~dp0chat.ps1"
+@pause
+
