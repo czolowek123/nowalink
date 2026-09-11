@@ -432,6 +432,8 @@
         <div id="chatBox" class="chat-box" style="display:none">
           <div id="chatMessages" class="chat-messages"></div>
           <div class="chat-input-row">
+            <input type="file" id="fileInput" style="display:none" onchange="uploadFile(this.files[0])">
+            <button onclick="document.getElementById('fileInput').click()" title="Прикрепить файл">📎</button>
             <input id="chatInput" type="text" placeholder="Написать сообщение..." onkeydown="if(event.key==='Enter') sendMessage()">
             <button onclick="sendMessage()">➤</button>
           </div>
@@ -605,9 +607,17 @@
 
     function renderChat() {
       const box = document.getElementById("chatMessages");
-      box.innerHTML = chatMessages.map(m => `
-        <div class="msg ${m.sender_id === myId ? 'mine' : 'theirs'}">${escapeHtml(m.content)}</div>
-      `).join("");
+      box.innerHTML = chatMessages.map(m => {
+        const bubbleClass = m.sender_id === myId ? 'mine' : 'theirs';
+        if (m.file_url) {
+          return `
+            <div class="msg ${bubbleClass}">
+              📎 <a href="${m.file_url}" target="_blank" download="${escapeHtml(m.file_name || 'file')}" style="color:inherit; text-decoration:underline;">${escapeHtml(m.file_name || 'файл')}</a>
+              ${m.content ? '<div>' + escapeHtml(m.content) + '</div>' : ''}
+            </div>`;
+        }
+        return `<div class="msg ${bubbleClass}">${escapeHtml(m.content)}</div>`;
+      }).join("");
       box.scrollTop = box.scrollHeight;
     }
 
@@ -626,6 +636,44 @@
         sender_id: myId,
         receiver_id: selectedId,
         content: text
+      });
+    }
+
+    const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 МБ лимит
+
+    async function uploadFile(file) {
+      if (!file || !selectedId || selectedId === myId) return;
+      if (file.size > MAX_FILE_SIZE) {
+        alert("Файл слишком большой (максимум 20 МБ)");
+        document.getElementById("fileInput").value = "";
+        return;
+      }
+
+      const path = myId + "/" + Date.now() + "_" + file.name;
+
+      const { error: uploadError } = await supabaseClient
+        .storage
+        .from("uploads")
+        .upload(path, file);
+
+      document.getElementById("fileInput").value = "";
+
+      if (uploadError) {
+        alert("Ошибка загрузки: " + uploadError.message);
+        return;
+      }
+
+      const { data: urlData } = supabaseClient
+        .storage
+        .from("uploads")
+        .getPublicUrl(path);
+
+      await supabaseClient.from("messages").insert({
+        sender_id: myId,
+        receiver_id: selectedId,
+        content: "",
+        file_url: urlData.publicUrl,
+        file_name: file.name
       });
     }
 
