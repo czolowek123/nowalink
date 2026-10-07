@@ -16,27 +16,107 @@
   </div>
   <div id="loginWrap" class="login-wrap"><div class="login"><h1>Вход в чат</h1><p>Придумайте username без пробелов. Разрешены английские буквы, цифры и <b>_</b>: например, <b>user111</b>.</p><input id="username" maxlength="24" placeholder="user111" autocomplete="username"><button id="enter">Войти</button><p id="loginError" class="error"></p></div></div>
   <script>
-    // Эти данные можно оставить: это тот же Supabase-проект, что был в вашем файле.
-const SUPABASE_URL = 'https://fwpsnsxsjlcgolqcqzku.supabase.co';
-
-const SUPABASE_KEY = 'sb_publishable_OkAn3rM405wIeQQK1g5WUQ_-F4x9yh8';
+    const SUPABASE_URL = 'https://fwpsnsxsjlcgolqcqzku.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_OkAn3rM405wIeQQK1g5WUQ_-F4x9yh8';
 
     const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-    const USERNAME=/^[A-Za-z0-9_]{3,24}$/; const ONLINE=10*60*1000; // CMD виден 10 минут после последнего действия
+    const USERNAME=/^[A-Za-z0-9_]{3,24}$/;
+    const ONLINE=10*60*1000;
+    
     let me='', selected='', users=[], messages=[];
-    const $=s=>document.querySelector(s); const esc=s=>{const x=document.createElement('span');x.textContent=s;return x.innerHTML};
+    const $=s=>document.querySelector(s);
+    const esc=s=>{const x=document.createElement('span');x.textContent=s;return x.innerHTML};
     const isOnline=u=>Date.now()-new Date(u.last_seen).getTime()<ONLINE;
-    async function heartbeat(){if(me) await db.from('presence').upsert({id:me,name:me,last_seen:new Date().toISOString()});}
-    async function loadUsers(){const {data,error}=await db.from('presence').select('*').order('last_seen',{ascending:false});if(error)return;users=(data||[]).filter(isOnline);if(selected&&!users.some(u=>u.id===selected))selected='';renderUsers();}
-    function renderUsers(){const box=$('#users');box.innerHTML=users.length?users.map(u=>`<div class="user ${u.id===selected?'active':''}" data-id="${esc(u.id)}"><div class="avatar">${esc(u.name[0].toUpperCase())}</div><div class="user-name">${esc(u.name)}${u.id===me?' (вы)':''}</div><i class="dot"></i></div>`).join(''):'<div class="me-hint" style="padding:10px">Никого нет онлайн</div>';box.querySelectorAll('.user').forEach(x=>x.onclick=()=>openChat(x.dataset.id));}
-    async function openChat(id){if(id===me)return;selected=id;$('#title').textContent='Чат с '+id;$('#empty').style.display='none';$('#chat').style.display='flex';renderUsers();const {data}=await db.from('messages').select('*').or(`and(sender_id.eq.${me},receiver_id.eq.${id}),and(sender_id.eq.${id},receiver_id.eq.${me})`).order('created_at',{ascending:true});messages=data||[];renderMessages();}
-    function renderMessages(){const box=$('#messages');box.innerHTML=messages.length?messages.map(m=>`<div class="message ${m.sender_id===me?'mine':''}"><div class="message-avatar">${esc(m.sender_id[0].toUpperCase())}</div><div><div class="author">${esc(m.sender_id)}</div><div class="bubble">${esc(m.content)}</div></div></div>`).join(''):'<div class="empty">Сообщений пока нет.</div>';box.scrollTop=box.scrollHeight;}
-    async function send(){const input=$('#messageInput'),content=input.value.trim();if(!selected||!content)return;$('#send').disabled=true;const {error}=await db.from('messages').insert({sender_id:me,receiver_id:selected,content});$('#send').disabled=false;if(error){alert('Ошибка: '+error.message);return;}input.value='';}
-    async function enter(){const username=$('#username').value.trim();if(!USERNAME.test(username)){$('#loginError').textContent='Имя должно состоять из 3–24 символов A-Z, 0-9 или _; пробелы нельзя.';return;}me=username;localStorage.setItem('brawlf_username',me);await heartbeat();$('#loginWrap').hidden=true;$('#meBox').hidden=false;$('#meBox .me-name').textContent=me;await loadUsers();}
-    $('#enter').onclick=enter;$('#username').onkeydown=e=>{if(e.key==='Enter')enter()};$('#send').onclick=send;$('#messageInput').onkeydown=e=>{if(e.key==='Enter')send()};
-    const saved=localStorage.getItem('brawlf_username');if(saved){$('#username').value=saved;enter();}
-    db.channel('chat-live').on('postgres_changes',{event:'*',schema:'public',table:'presence'},loadUsers).on('postgres_changes',{event:'INSERT',schema:'public',table:'messages'},p=>{const m=p.new;if(selected&&((m.sender_id===me&&m.receiver_id===selected)||(m.sender_id===selected&&m.receiver_id===me))){messages.push(m);renderMessages();}}).subscribe();
-    setInterval(heartbeat,15000);setInterval(loadUsers,15000);
+    
+    async function heartbeat(){
+      if(me) await db.from('presence').upsert({id:me,name:me,last_seen:new Date().toISOString()});
+    }
+    
+    async function loadUsers(){
+      const {data,error}=await db.from('presence').select('*').order('last_seen',{ascending:false});
+      if(error)return;
+      users=(data||[]).filter(isOnline);
+      if(selected&&!users.some(u=>u.id===selected))selected='';
+      renderUsers();
+    }
+    
+    function renderUsers(){
+      const box=$('#users');
+      box.innerHTML=users.length?users.map(u=>`<div class="user ${u.id===selected?'active':''}" data-id="${esc(u.id)}"><div class="avatar">${esc(u.name[0].toUpperCase())}</div><div class="user-name">${esc(u.name)}${u.id===me?' (вы)':''}</div><i class="dot"></i></div>`).join(''):'<div class="me-hint" style="padding:10px">Никого нет онлайн</div>';
+      box.querySelectorAll('.user').forEach(x=>x.onclick=()=>openChat(x.dataset.id));
+    }
+    
+    async function openChat(id){
+      if(id===me)return;
+      selected=id;
+      $('#title').textContent='Чат с '+id;
+      $('#empty').style.display='none';
+      $('#chat').style.display='flex';
+      renderUsers();
+      
+      const {data:sent}=await db.from('messages').select('*').eq('sender_id',me).eq('receiver_id',id).order('created_at',{ascending:true});
+      const {data:received}=await db.from('messages').select('*').eq('sender_id',id).eq('receiver_id',me).order('created_at',{ascending:true});
+      
+      messages=[...(sent||[]),...(received||[])].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+      renderMessages();
+    }
+    
+    function renderMessages(){
+      const box=$('#messages');
+      box.innerHTML=messages.length?messages.map(m=>`<div class="message ${m.sender_id===me?'mine':''}"><div class="message-avatar">${esc(m.sender_id[0].toUpperCase())}</div><div><div class="author">${esc(m.sender_id)}</div><div class="bubble">${esc(m.content)}</div></div></div>`).join(''):'<div class="empty">Сообщений пока нет.</div>';
+      box.scrollTop=box.scrollHeight;
+    }
+    
+    async function send(){
+      const input=$('#messageInput'),content=input.value.trim();
+      if(!selected||!content)return;
+      $('#send').disabled=true;
+      const {error}=await db.from('messages').insert({sender_id:me,receiver_id:selected,content,created_at:new Date().toISOString()});
+      $('#send').disabled=false;
+      if(error){
+        alert('Ошибка: '+error.message);
+        return;
+      }
+      input.value='';
+      await openChat(selected);
+    }
+    
+    async function enter(){
+      const username=$('#username').value.trim();
+      if(!USERNAME.test(username)){
+        $('#loginError').textContent='Имя должно состоять из 3–24 символов A-Z, 0-9 или _; пробелы нельзя.';
+        return;
+      }
+      me=username;
+      localStorage.setItem('brawlf_username',me);
+      await heartbeat();
+      $('#loginWrap').hidden=true;
+      $('#meBox').hidden=false;
+      $('#meBox .me-name').textContent=me;
+      await loadUsers();
+    }
+    
+    $('#enter').onclick=enter;
+    $('#username').onkeydown=e=>{if(e.key==='Enter')enter()};
+    $('#send').onclick=send;
+    $('#messageInput').onkeydown=e=>{if(e.key==='Enter')send()};
+    
+    const saved=localStorage.getItem('brawlf_username');
+    if(saved){$('#username').value=saved;enter();}
+    
+    db.channel('chat-live')
+      .on('postgres_changes',{event:'*',schema:'public',table:'presence'},loadUsers)
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages'},p=>{
+        const m=p.new;
+        if(selected&&((m.sender_id===me&&m.receiver_id===selected)||(m.sender_id===selected&&m.receiver_id===me))){
+          messages.push(m);
+          renderMessages();
+        }
+      })
+      .subscribe();
+    
+    setInterval(heartbeat,15000);
+    setInterval(loadUsers,15000);
   </script>
 </body>
 </html>
