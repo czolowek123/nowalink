@@ -24,6 +24,7 @@
     const ONLINE=10*60*1000;
     
     let me='', selected='', users=[], messages=[];
+    let chatInterval=null;
     const $=s=>document.querySelector(s);
     const esc=s=>{const x=document.createElement('span');x.textContent=s;return x.innerHTML};
     const isOnline=u=>Date.now()-new Date(u.last_seen).getTime()<ONLINE;
@@ -46,6 +47,14 @@
       box.querySelectorAll('.user').forEach(x=>x.onclick=()=>openChat(x.dataset.id));
     }
     
+    async function loadMessagesOnly(){
+      if(!selected)return;
+      const {data:sent}=await db.from('messages').select('*').eq('sender_id',me).eq('receiver_id',selected).order('created_at',{ascending:true});
+      const {data:received}=await db.from('messages').select('*').eq('sender_id',selected).eq('receiver_id',me).order('created_at',{ascending:true});
+      messages=[...(sent||[]),...(received||[])].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+      renderMessages();
+    }
+    
     async function openChat(id){
       if(id===me)return;
       selected=id;
@@ -54,11 +63,10 @@
       $('#chat').style.display='flex';
       renderUsers();
       
-      const {data:sent}=await db.from('messages').select('*').eq('sender_id',me).eq('receiver_id',id).order('created_at',{ascending:true});
-      const {data:received}=await db.from('messages').select('*').eq('sender_id',id).eq('receiver_id',me).order('created_at',{ascending:true});
+      await loadMessagesOnly();
       
-      messages=[...(sent||[]),...(received||[])].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
-      renderMessages();
+      if(chatInterval)clearInterval(chatInterval);
+      chatInterval=setInterval(loadMessagesOnly,1000);
     }
     
     function renderMessages(){
@@ -78,7 +86,7 @@
         return;
       }
       input.value='';
-      await openChat(selected);
+      await loadMessagesOnly();
     }
     
     async function enter(){
@@ -106,13 +114,6 @@
     
     db.channel('chat-live')
       .on('postgres_changes',{event:'*',schema:'public',table:'presence'},loadUsers)
-      .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages'},p=>{
-        const m=p.new;
-        if(selected&&((m.sender_id===me&&m.receiver_id===selected)||(m.sender_id===selected&&m.receiver_id===me))){
-          messages.push(m);
-          renderMessages();
-        }
-      })
       .subscribe();
     
     setInterval(heartbeat,15000);
